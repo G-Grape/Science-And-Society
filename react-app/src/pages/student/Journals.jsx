@@ -5,7 +5,7 @@ import { useToast } from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 
-const statusLabels = { submitted: 'Submitted', under_review: 'Under Review', approved: 'Accepted', rejected: 'Rejected' }
+const statusLabels = { submitted: 'Submitted', under_review: 'Under Review', approved: 'Accepted', rejected: 'Rejected', revision_required: 'Revision Required' }
 
 /* ── Journal List ─────────────────────────────────────────────────── */
 export function StudentJournals() {
@@ -43,7 +43,7 @@ export function StudentJournals() {
 
       {/* Filter tabs */}
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-        {['all', 'submitted', 'under_review', 'approved', 'rejected'].map(f => (
+        {['all', 'submitted', 'under_review', 'revision_required', 'approved', 'rejected'].map(f => (
           <button key={f} onClick={() => setFilter(f)}
             className={`btn btn-sm ${filter === f ? 'btn-primary' : 'btn-outline'}`}>
             {f === 'all' ? 'All' : statusLabels[f]}
@@ -101,7 +101,7 @@ export function StudentJournalDetail() {
   // Resubmission form state
   const [editing, setEditing] = useState(false)
   const [editTitle, setEditTitle] = useState('')
-  const [editAbstract, setEditAbstract] = useState('')
+  const [editAbstractFile, setEditAbstractFile] = useState(null)
   const [editKeywords, setEditKeywords] = useState('')
   const [editFile, setEditFile] = useState(null)
   const [resubmitting, setResubmitting] = useState(false)
@@ -122,7 +122,6 @@ export function StudentJournalDetail() {
     setReviews(reviewsRes.data ?? [])
     if (j) {
       setEditTitle(j.title)
-      setEditAbstract(j.abstract?.startsWith('http') ? '' : j.abstract)
       setEditKeywords(j.keywords)
     }
     setLoading(false)
@@ -137,13 +136,17 @@ export function StudentJournalDetail() {
       // Get the most recent reviewer comment for this journal
       const latestReview = reviews.length > 0 ? reviews[reviews.length - 1] : null
 
-      // Get the currently assigned reviewer
-      const { data: assignments } = await supabase
-        .from('assignments')
-        .select('reviewer_id')
-        .eq('journal_id', id)
-
-      const oldReviewerId = assignments?.[0]?.reviewer_id ?? null
+      // Upload new abstract PDF if provided
+      let abstractUrl = journal.abstract
+      if (editAbstractFile) {
+        const absName = `resubmissions/${id}/abstract_${Date.now()}.pdf`
+        const { error: absErr } = await supabase.storage
+          .from('journals')
+          .upload(absName, editAbstractFile, { cacheControl: '3600', upsert: false })
+        if (absErr) throw absErr
+        const { data: absUrlData } = supabase.storage.from('journals').getPublicUrl(absName)
+        abstractUrl = absUrlData.publicUrl
+      }
 
       // Upload new file if provided
       let fileUrl = journal.file_url
@@ -158,14 +161,16 @@ export function StudentJournalDetail() {
       }
 
       // Update journal: save previous feedback, reset for new review cycle
+      // We set status to 'under_review' and review_level to 1 (assigned to reviewer)
       const { error } = await supabase
         .from('journals')
         .update({
           title: editTitle,
-          abstract: editAbstract || journal.abstract,
+          abstract: abstractUrl,
           keywords: editKeywords,
           file_url: fileUrl,
           status: 'under_review',
+          review_level: 1,
           resubmission_count: (journal.resubmission_count || 0) + 1,
           prev_admin_comments: journal.admin_comments,
           prev_revision_report_url: journal.revision_report_url,
@@ -179,19 +184,21 @@ export function StudentJournalDetail() {
       if (error) throw error
 
       // Delete old reviews so the reviewer starts fresh
-      await supabase.from('reviews').delete().eq('journal_id', id)
+      // This is what moves it from 'Completed' back to 'Assigned' for the reviewer
+      const { error: delError } = await supabase.from('reviews').delete().eq('journal_id', id)
 
-      // Re-assign the old reviewer automatically
-      if (oldReviewerId) {
-        // Delete existing assignments first to avoid conflict
-        await supabase.from('assignments').delete().eq('journal_id', id)
-        await supabase.from('assignments').insert({ journal_id: id, reviewer_id: oldReviewerId })
+      if (delError) {
+        console.error('Failed to delete old reviews:', delError)
+        // If this fails, the reviewer will still see it as 'Completed'
+        toast.error('Partial success: Journal updated but failed to clear old reviews. Please contact admin.')
+      } else {
+        toast.success('Journal resubmitted successfully! It has been assigned to your previous reviewer.')
       }
 
-      toast.success('Journal resubmitted successfully!')
       setEditing(false)
       fetchDetail()
     } catch (err) {
+      console.error('Resubmission error:', err)
       toast.error(err.message || 'Resubmission failed')
     }
     setResubmitting(false)
@@ -241,10 +248,17 @@ export function StudentJournalDetail() {
                     <input className="input" value={editTitle} onChange={e => setEditTitle(e.target.value)} required />
                   </div>
                   <div className="form-group">
-                    <label className="text-sm font-medium">Abstract</label>
-                    <textarea className="textarea" rows={4} value={editAbstract}
-                      onChange={e => setEditAbstract(e.target.value)}
-                      placeholder="Update your abstract…" />
+                    <label className="text-sm font-medium">Abstract (PDF)</label>
+                    {editAbstractFile ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', background: 'var(--muted)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                        <span className="text-sm">{editAbstractFile.name}</span>
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditAbstractFile(null)}>✕</button>
+                      </div>
+                    ) : (
+                      <input type="file" accept=".pdf" className="input" style={{ padding: '0.4rem' }}
+                        onChange={e => { if (e.target.files?.[0]) setEditAbstractFile(e.target.files[0]) }} />
+                    )}
+                    <p className="text-xs text-muted" style={{ marginTop: '0.25rem' }}>Leave empty to keep existing abstract</p>
                   </div>
                   <div className="form-group">
                     <label className="text-sm font-medium">Keywords</label>

@@ -5,12 +5,12 @@ import { supabase } from '../../lib/supabase'
 
 export default function AssignReviewers() {
   const toast = useToast()
-  const [journals,    setJournals]    = useState([])
-  const [reviewers,   setReviewers]   = useState([])
+  const [journals, setJournals] = useState([])
+  const [reviewers, setReviewers] = useState([])
   const [assignments, setAssignments] = useState({})   // { journalId: [{ id, reviewer_id, profiles: { name } }] }
-  const [selected,    setSelected]    = useState(null)
-  const [search,      setSearch]      = useState('')
-  const [loading,     setLoading]     = useState(true)
+  const [selected, setSelected] = useState(null)
+  const [search, setSearch] = useState('')
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => { fetchAll() }, [])
 
@@ -31,8 +31,8 @@ export default function AssignReviewers() {
         .select('id, journal_id, reviewer_id, profiles(name)'),
     ])
 
-    if (journalsRes.error)    toast.error('Failed to load journals')
-    if (reviewersRes.error)   toast.error('Failed to load reviewers')
+    if (journalsRes.error) toast.error('Failed to load journals')
+    if (reviewersRes.error) toast.error('Failed to load reviewers')
     if (assignmentsRes.error) toast.error('Failed to load assignments')
 
     setJournals(journalsRes.data ?? [])
@@ -135,12 +135,23 @@ export default function AssignReviewers() {
                 <p className="text-sm text-muted">No pending journals found.</p>
               )}
               {filteredJournals.map(j => {
-                const assigned   = assignments[j.id] ?? []
+                const assigned = assignments[j.id] ?? []
                 const isSelected = selected === j.id
+                const isUnassigned = assigned.length === 0
+
+                const cardStyle = {
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  borderWidth: (isSelected || isUnassigned) ? '2px' : '1px',
+                  borderColor: isSelected ? 'var(--primary)' : (isUnassigned ? '#dc2626' : undefined),
+                  background: isUnassigned ? '#fef2f2' : undefined,
+                  boxShadow: isUnassigned ? '0 0 0 1px #dc2626' : undefined,
+                }
+
                 return (
                   <div key={j.id}
                     className="card"
-                    style={{ cursor: 'pointer', borderColor: isSelected ? 'var(--primary)' : undefined, borderWidth: isSelected ? '2px' : undefined }}
+                    style={cardStyle}
                     onClick={() => setSelected(isSelected ? null : j.id)}
                   >
                     <div className="card-content" style={{ paddingTop: '1.25rem' }}>
@@ -188,18 +199,18 @@ export default function AssignReviewers() {
                 )}
                 {reviewers.map(r => {
                   const alreadyAssigned = selected && (assignments[selected] ?? []).some(a => a.reviewer_id === r.id)
-                          const isFull = selected && (assignments[selected] ?? []).length >= 1
-                          return (
-                            <div key={r.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '0.875rem' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <div>
-                                  <p className="font-medium text-sm">{r.name}</p>
-                                </div>
-                                <button
-                                  className={`btn btn-sm ${alreadyAssigned ? 'btn-outline' : 'btn-primary'}`}
-                                  disabled={!selected || alreadyAssigned || (!alreadyAssigned && isFull)}
-                                  onClick={() => selected && assignReviewer(selected, r)}
-                                >
+                  const isFull = selected && (assignments[selected] ?? []).length >= 1
+                  return (
+                    <div key={r.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '0.875rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <p className="font-medium text-sm">{r.name}</p>
+                        </div>
+                        <button
+                          className={`btn btn-sm ${alreadyAssigned ? 'btn-outline' : 'btn-primary'}`}
+                          disabled={!selected || alreadyAssigned || (!alreadyAssigned && isFull)}
+                          onClick={() => selected && assignReviewer(selected, r)}
+                        >
                           <UserPlus size={13} /> {alreadyAssigned ? 'Assigned' : 'Assign'}
                         </button>
                       </div>

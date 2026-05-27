@@ -8,7 +8,7 @@ create table public.profiles (
   id         uuid primary key references auth.users(id) on delete cascade,
   name       text not null,
   role       text not null check (role in ('student', 'reviewer', 'admin')),
-  status     text not null default 'active' check (status in ('active', 'inactive')),
+  status     text not null default 'active' check (status in ('active', 'inactive', 'pending')),
   created_at timestamptz default now()
 );
 
@@ -89,6 +89,10 @@ alter table public.reviews enable row level security;
 create policy "Anyone authenticated can read reviews" on public.reviews for select using (auth.uid() is not null);
 create policy "Reviewers can insert reviews" on public.reviews for insert
   with check (auth.uid() = reviewer_id);
+create policy "Reviewers can update reviews" on public.reviews for update
+  using (auth.uid() = reviewer_id);
+create policy "Students can delete reviews on own journals" on public.reviews for delete
+  using (journal_id in (select id from public.journals where student_id = auth.uid()));
 
 -- 5. Storage bucket for PDFs
 -- Run in Supabase dashboard → Storage → Create bucket named "journals" (public)
@@ -130,3 +134,36 @@ create policy "Admins can select paper_requests" on public.paper_requests for se
 -- Admins can update the status
 create policy "Admins can update paper_requests" on public.paper_requests for update
   using (exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'));
+
+-- 8. Admin RPC functions for user management
+-- These functions bypass RLS (security definer) to allow admins to manage users
+create or replace function public.approve_reviewer(target_user_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if exists (select 1 from public.profiles where id = auth.uid() and role = 'admin') then
+    update public.profiles set status = 'active' where id = target_user_id;
+  else
+    raise exception 'Unauthorized';
+  end if;
+end;
+$$;
+
+create or replace function public.delete_user(target_user_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if exists (select 1 from public.profiles where id = auth.uid() and role = 'admin') then
+    -- Deleting from auth.users cascades to public.profiles and frees up the email
+    delete from auth.users where id = target_user_id;
+  else
+    raise exception 'Unauthorized';
+  end if;
+end;
+$$;

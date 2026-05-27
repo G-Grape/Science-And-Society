@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search, Edit2, Trash2, UserPlus, RefreshCw } from 'lucide-react'
+import { Search, Trash2, RefreshCw, CheckCircle2, XCircle, Clock } from 'lucide-react'
 import { useToast } from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 
@@ -8,7 +8,8 @@ export default function AdminUsers() {
   const [users,      setUsers]      = useState([])
   const [loading,    setLoading]    = useState(true)
   const [search,     setSearch]     = useState('')
-  const [roleFilter, setRoleFilter] = useState('all')
+  const [roleFilter, setRoleFilter] = useState('student')
+  const [actionLoading, setActionLoading] = useState(null) // track which user action is in progress
 
   useEffect(() => { fetchUsers() }, [])
 
@@ -24,16 +25,45 @@ export default function AdminUsers() {
     setLoading(false)
   }
 
+  async function approveUser(userId) {
+    setActionLoading(userId)
+    const { error } = await supabase.rpc('approve_reviewer', { target_user_id: userId })
+
+    if (error) {
+      toast.error('Failed to approve user: ' + error.message)
+    } else {
+      toast.success('Reviewer approved successfully!')
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'active' } : u))
+      window.dispatchEvent(new Event('users-updated'))
+    }
+    setActionLoading(null)
+  }
+
+  async function deleteUser(userId) {
+    setActionLoading(userId)
+    const { error } = await supabase.rpc('delete_user', { target_user_id: userId })
+
+    if (error) {
+      toast.error('Failed to delete user: ' + error.message)
+    } else {
+      toast.success('User deleted successfully')
+      setUsers(prev => prev.filter(u => u.id !== userId))
+      window.dispatchEvent(new Event('users-updated'))
+    }
+    setActionLoading(null)
+  }
+
   const filtered = users.filter(u => {
     const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) ||
                         (u.email ?? '').toLowerCase().includes(search.toLowerCase())
-    const matchRole = roleFilter === 'all' || u.role === roleFilter
+    const matchRole = u.role === roleFilter
     return matchSearch && matchRole
   })
 
   const studentCount  = users.filter(u => u.role === 'student').length
   const reviewerCount = users.filter(u => u.role === 'reviewer').length
   const adminCount    = users.filter(u => u.role === 'admin').length
+  const pendingCount  = users.filter(u => u.status === 'pending').length
 
   return (
     <div className="space-y-6">
@@ -56,10 +86,10 @@ export default function AdminUsers() {
           { label: 'Students',    value: studentCount },
           { label: 'Reviewers',   value: reviewerCount },
           { label: 'Admins',      value: adminCount },
-        ].map(({ label, value }) => (
-          <div key={label} className="card">
+        ].map(({ label, value, highlight }) => (
+          <div key={label} className="card" style={highlight ? { border: '1px solid #f59e0b', background: 'rgba(245, 158, 11, 0.06)' } : {}}>
             <div className="card-content" style={{ paddingTop: '1rem' }}>
-              <p className="stat-val">{loading ? '—' : value}</p>
+              <p className="stat-val" style={highlight ? { color: '#f59e0b' } : {}}>{loading ? '—' : value}</p>
               <p className="stat-label">{label}</p>
             </div>
           </div>
@@ -74,9 +104,26 @@ export default function AdminUsers() {
             placeholder="Search by name or email…" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          {['all', 'student', 'reviewer', 'admin'].map(r => (
-            <button key={r} onClick={() => setRoleFilter(r)} className={`btn btn-sm ${roleFilter === r ? 'btn-primary' : 'btn-outline'}`}>
+          {['student', 'reviewer', 'admin'].map(r => (
+            <button key={r} onClick={() => setRoleFilter(r)} className={`btn btn-sm ${roleFilter === r ? 'btn-primary' : 'btn-outline'}`} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {r.charAt(0).toUpperCase() + r.slice(1)}
+              {r === 'reviewer' && pendingCount > 0 && (
+                <span style={{
+                  background: roleFilter === 'reviewer' ? '#fff' : '#f59e0b',
+                  color: roleFilter === 'reviewer' ? 'var(--primary)' : '#fff',
+                  fontSize: '0.7rem',
+                  fontWeight: 'bold',
+                  minWidth: '20px',
+                  height: '20px',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 6px',
+                }}>
+                  {pendingCount}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -105,20 +152,60 @@ export default function AdminUsers() {
                       style={{ textTransform: 'capitalize' }}>{u.role}</span>
                   </td>
                   <td>
-                    <span className={u.status === 'active' ? 'status-approved' : 'status-rejected'}>
-                      {u.status === 'active' ? 'Active' : 'Inactive'}
-                    </span>
+                    {u.status === 'pending' ? (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                        color: '#f59e0b', fontWeight: 500, fontSize: '0.8125rem'
+                      }}>
+                        <Clock size={13} /> Pending
+                      </span>
+                    ) : (
+                      <span className={u.status === 'active' ? 'status-approved' : 'status-rejected'}>
+                        {u.status === 'active' ? 'Active' : 'Inactive'}
+                      </span>
+                    )}
                   </td>
                   <td style={{ color: 'var(--muted-foreground)', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>
                     {new Date(u.created_at).toLocaleDateString()}
                   </td>
                   <td>
                     <div className="table-actions">
-                      <button className="btn btn-ghost btn-icon" title="Delete"
-                        style={{ color: 'var(--destructive)' }}
-                        onClick={() => toast.error(`Delete requires service-role key — manage via Supabase dashboard.`)}>
-                        <Trash2 size={15} />
-                      </button>
+                      {u.status === 'pending' ? (
+                        <>
+                          <button
+                            className="btn btn-sm"
+                            style={{
+                              background: 'var(--primary)', color: '#fff',
+                              display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                              opacity: actionLoading === u.id ? 0.6 : 1
+                            }}
+                            disabled={actionLoading === u.id}
+                            title="Approve reviewer"
+                            onClick={() => approveUser(u.id)}
+                          >
+                            <CheckCircle2 size={14} /> Approve
+                          </button>
+                          <button
+                            className="btn btn-sm"
+                            style={{
+                              background: 'var(--destructive)', color: '#fff',
+                              display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                              opacity: actionLoading === u.id ? 0.6 : 1
+                            }}
+                            disabled={actionLoading === u.id}
+                            title="Reject & delete"
+                            onClick={() => deleteUser(u.id)}
+                          >
+                            <XCircle size={14} /> Reject
+                          </button>
+                        </>
+                      ) : (
+                        <button className="btn btn-ghost btn-icon" title="Delete"
+                          style={{ color: 'var(--destructive)' }}
+                          onClick={() => deleteUser(u.id)}>
+                          <Trash2 size={15} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

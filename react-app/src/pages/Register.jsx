@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { BookOpen, UserPlus, Eye, EyeOff, ShieldCheck } from 'lucide-react'
+import { BookOpen, UserPlus, Eye, EyeOff, ShieldCheck, Home } from 'lucide-react'
 import { useToast } from '../components/Toast'
 import { useAuth } from '../context/AuthContext'
 
 // Admin secret code — change this to something private in production
-const ADMIN_SECRET = 'GYANADMIN2026'
+const ADMIN_SECRET = 'SSADMIN2026'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -16,24 +16,65 @@ export default function Register() {
   const [form, setForm] = useState({
     name: '', email: '', role: '', password: '', confirmPassword: '', adminCode: ''
   })
+  const [errors, setErrors] = useState({})
 
-  const set = (key) => (e) => setForm(prev => ({ ...prev, [key]: e.target.value }))
+  const set = (key) => (e) => {
+    setForm(prev => ({ ...prev, [key]: e.target.value }))
+    if (errors[key]) setErrors(prev => ({ ...prev, [key]: false }))
+  }
+
+  const validatePassword = (pwd) => {
+    if (pwd.length < 8) return 'Password must be at least 8 characters.'
+    if (!/[0-9]/.test(pwd)) return 'Password must contain at least one number.'
+    if (!/[A-Z]/.test(pwd)) return 'Password must contain at least one uppercase letter.'
+    return ''
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (form.password !== form.confirmPassword) { toast.error('Passwords do not match'); return }
-    if (!form.role) { toast.error('Please select a role'); return }
 
-    // Validate admin secret code
+    const newErrors = {}
+    if (!form.name.trim()) newErrors.name = true
+    if (!form.email.trim()) newErrors.email = true
+    if (!form.role) newErrors.role = true
+    
     if (form.role === 'admin') {
-      if (!form.adminCode) { toast.error('Admin secret code is required'); return }
-      if (form.adminCode !== ADMIN_SECRET) { toast.error('Invalid admin secret code'); return }
+      if (!form.adminCode) {
+        newErrors.adminCode = true
+        toast.error('Admin secret code is required')
+      } else if (form.adminCode !== ADMIN_SECRET) {
+        newErrors.adminCode = true
+        toast.error('Invalid admin secret code')
+      }
+    }
+
+    const pwdErr = validatePassword(form.password)
+    if (pwdErr) {
+      newErrors.password = true
+      toast.error(pwdErr)
+    }
+    
+    if (form.password !== form.confirmPassword) {
+      newErrors.confirmPassword = true
+      if (!pwdErr) toast.error('Passwords do not match')
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      if (newErrors.name || newErrors.email || newErrors.role) {
+        toast.error('Please fill out all required fields')
+      }
+      return
     }
 
     setLoading(true)
     try {
       await signUp(form.email, form.password, form.name, form.role)
-      toast.success('Registration successful! Please check your email to confirm your account, then sign in.')
+      if (form.role === 'reviewer') {
+        toast.success('Registration submitted! Your account is pending admin approval. You will be able to log in once approved.')
+      } else {
+        toast.success('Registration successful! Please check your email to confirm your account, then sign in.')
+      }
       navigate('/login')
     } catch (err) {
       toast.error(err.message || 'Registration failed. Please try again.')
@@ -42,17 +83,18 @@ export default function Register() {
   }
 
   return (
-    <div className="auth-page">
-      <div className="auth-wrapper">
-        <div className="auth-logo">
-          <Link to="/" className="auth-logo-inner">
-            <BookOpen size={40} style={{ color: 'var(--primary)' }} />
-            <div className="auth-logo-texts">
-              <span className="auth-logo-title">Gyan Samavesh</span>
-              <span className="auth-logo-sub">2026</span>
-            </div>
-          </Link>
+    <div className="auth-page login-page-override">
+      <div className="login-topbar">
+        <div className="login-topbar-brand">
+          <BookOpen size={24} />
+          <span style={{ fontWeight: 600, fontSize: '1.125rem' }}>Science and Society</span>
         </div>
+        <Link to="/" aria-label="Home" className="login-topbar-home">
+          <Home size={20} />
+        </Link>
+      </div>
+
+      <div className="auth-wrapper login-wrapper-override">
 
         <div className="auth-card card">
           <div className="auth-card-header">
@@ -61,22 +103,22 @@ export default function Register() {
           </div>
 
           <div className="auth-card-body">
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
               <div className="form-group">
                 <label htmlFor="name">Full Name</label>
-                <input id="name" className="input" placeholder="John Doe"
-                  value={form.name} onChange={set('name')} required />
+                <input id="name" className={`input ${errors.name ? 'input-error' : ''}`} placeholder="John Doe"
+                  value={form.name} onChange={set('name')} />
               </div>
 
               <div className="form-group">
                 <label htmlFor="reg-email">Email</label>
-                <input id="reg-email" type="email" className="input" placeholder="your@email.com"
-                  value={form.email} onChange={set('email')} required />
+                <input id="reg-email" type="email" className={`input ${errors.email ? 'input-error' : ''}`} placeholder="your@email.com"
+                  value={form.email} onChange={set('email')} />
               </div>
 
               <div className="form-group">
                 <label htmlFor="role">Role</label>
-                <select id="role" className="select" value={form.role} onChange={set('role')}>
+                <select id="role" className={`select ${errors.role ? 'input-error' : ''}`} value={form.role} onChange={set('role')}>
                   <option value="">Select your role</option>
                   <option value="student">Student / Researcher</option>
                   <option value="reviewer">Reviewer</option>
@@ -96,7 +138,7 @@ export default function Register() {
                     <ShieldCheck size={15} style={{ color: 'var(--primary)' }} />
                     Admin Secret Code
                   </label>
-                  <input id="adminCode" type="password" className="input"
+                  <input id="adminCode" type="password" className={`input ${errors.adminCode ? 'input-error' : ''}`}
                     placeholder="Enter admin secret code"
                     value={form.adminCode} onChange={set('adminCode')} />
                   <p className="form-hint">Contact the system administrator for the secret code.</p>
@@ -106,20 +148,25 @@ export default function Register() {
               <div className="form-group">
                 <label htmlFor="reg-password">Password</label>
                 <div className="password-wrapper">
-                  <input id="reg-password" type={showPassword ? 'text' : 'password'} className="input"
-                    placeholder="Create a password (min 6 characters)" value={form.password}
-                    onChange={set('password')} style={{ paddingRight: '2.5rem' }} required />
+                  <input id="reg-password" type={showPassword ? 'text' : 'password'} className={`input ${errors.password ? 'input-error' : ''}`}
+                    placeholder="Create a password" value={form.password}
+                    onChange={set('password')} style={{ paddingRight: '2.5rem' }} />
                   <button type="button" className="password-toggle" onClick={() => setShowPassword(v => !v)}>
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+                <ul className="fp-pw-rules">
+                  <li className={form.password.length >= 8 ? 'met' : ''}>At least 8 characters</li>
+                  <li className={/[0-9]/.test(form.password) ? 'met' : ''}>At least one number</li>
+                  <li className={/[A-Z]/.test(form.password) ? 'met' : ''}>At least one uppercase letter</li>
+                </ul>
               </div>
 
               <div className="form-group">
                 <label htmlFor="confirmPassword">Confirm Password</label>
-                <input id="confirmPassword" type="password" className="input"
+                <input id="confirmPassword" type="password" className={`input ${errors.confirmPassword ? 'input-error' : ''}`}
                   placeholder="Confirm your password" value={form.confirmPassword}
-                  onChange={set('confirmPassword')} required />
+                  onChange={set('confirmPassword')} />
               </div>
 
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', cursor: 'pointer', fontWeight: 'normal' }}>

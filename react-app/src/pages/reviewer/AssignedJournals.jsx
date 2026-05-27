@@ -9,10 +9,10 @@ const statusLabels = { submitted: 'Submitted', under_review: 'Under Review', app
 
 /* ── Assigned Journals List ───────────────────────────────────────── */
 export function AssignedJournals() {
-  const { user }   = useAuth()
-  const [items,    setItems]   = useState([])
-  const [loading,  setLoading] = useState(true)
-  const [filter,   setFilter]  = useState('all')
+  const { user } = useAuth()
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState('all')
 
   useEffect(() => { if (user) fetchAssigned() }, [user])
 
@@ -24,7 +24,7 @@ export function AssignedJournals() {
       .select(`
         id,
         journals (
-          id, title, abstract, category, status, review_level, created_at,
+          id, title, abstract, category, status, review_level, resubmission_count, created_at,
           profiles ( name )
         )
       `)
@@ -47,8 +47,8 @@ export function AssignedJournals() {
         .filter(a => a.journals)
         .map(a => ({
           ...a.journals,
-          assignmentId:  a.id,
-          reviewStatus:  reviewedSet.has(a.journals.id) ? 'completed' : 'pending',
+          assignmentId: a.id,
+          reviewStatus: reviewedSet.has(a.journals.id) ? 'completed' : 'pending',
         }))
     )
     setLoading(false)
@@ -64,7 +64,7 @@ export function AssignedJournals() {
       </div>
 
       <div style={{ display: 'flex', gap: '0.5rem' }}>
-        {[{id: 'all', label: 'All'}, {id: 'pending', label: 'Assigned'}, {id: 'completed', label: 'Completed'}].map(f => (
+        {[{ id: 'all', label: 'All' }, { id: 'pending', label: 'Assigned' }, { id: 'completed', label: 'Completed' }].map(f => (
           <button key={f.id} onClick={() => setFilter(f.id)} className={`btn btn-sm ${filter === f.id ? 'btn-primary' : 'btn-outline'}`}>
             {f.label}
           </button>
@@ -89,8 +89,12 @@ export function AssignedJournals() {
                     <User size={12} />{j.profiles?.name ?? '—'}
                   </span>
                   <span className="text-xs text-muted">{j.category}</span>
-                  <span className="text-xs text-muted">Level {j.review_level}</span>
                   <span className="text-xs text-muted">Submitted {new Date(j.created_at).toLocaleDateString()}</span>
+                  {j.resubmission_count > 0 && (
+                    <span className="badge" style={{ background: '#dbeafe', color: '#1e40af', fontWeight: 600, fontSize: '0.65rem' }}>
+                      Resubmission #{j.resubmission_count}
+                    </span>
+                  )}
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -121,16 +125,16 @@ export function AssignedJournals() {
 
 /* ── Review Detail / Form ─────────────────────────────────────────── */
 export function ReviewJournal() {
-  const { id }     = useParams()
-  const navigate   = useNavigate()
-  const toast      = useToast()
-  const { user }   = useAuth()
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const toast = useToast()
+  const { user } = useAuth()
 
-  const [journal,    setJournal]    = useState(null)
-  const [loading,    setLoading]    = useState(true)
-  const [comments,   setComments]   = useState('')
+  const [journal, setJournal] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [comments, setComments] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [existing,   setExisting]   = useState(null)
+  const [existing, setExisting] = useState(null)
 
   useEffect(() => { fetchJournal() }, [id])
 
@@ -155,20 +159,20 @@ export function ReviewJournal() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!comments.trim())  { toast.error('Please provide review comments'); return }
+    if (!comments.trim()) { toast.error('Please provide review comments'); return }
     setSubmitting(true)
 
     try {
       const payload = {
-        journal_id:  id,
+        journal_id: id,
         reviewer_id: user.id,
         decision: 'approve',
         comments,
         originality: null,
         methodology: null,
-        clarity:     null,
-        refs:        null,
-        overall:     null,
+        clarity: null,
+        refs: null,
+        overall: null,
       }
 
       if (existing) {
@@ -274,8 +278,8 @@ export function ReviewJournal() {
             <div className="card-header"><div className="card-title">Submission Details</div></div>
             <div className="card-content space-y-2">
               {[
-                ['Category',     journal.category],
-                ['Submitted',    new Date(journal.created_at).toLocaleDateString()],
+                ['Category', journal.category],
+                ['Submitted', new Date(journal.created_at).toLocaleDateString()],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span className="text-sm text-muted">{k}</span>

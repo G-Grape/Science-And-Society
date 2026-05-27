@@ -58,6 +58,7 @@ export function AuthProvider({ children }) {
         id:   data.user.id,
         name,
         role,
+        status: role === 'reviewer' ? 'pending' : 'active',
       })
       if (profileError) throw profileError
     }

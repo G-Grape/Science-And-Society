@@ -9,7 +9,7 @@ export default function AdminReports() {
   const [journals, setJournals] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState('all')
+  const [filter, setFilter] = useState('under_review')
 
   useEffect(() => { fetchJournals() }, [])
 
@@ -47,13 +47,18 @@ export default function AdminReports() {
     const matchSearch = j.title.toLowerCase().includes(search.toLowerCase()) ||
       (j.profiles?.name ?? '').toLowerCase().includes(search.toLowerCase())
 
+    const hasReviews = Array.isArray(j.reviews) && j.reviews.length > 0
+    const hasAdminDecision = ['approved', 'rejected', 'revision_required'].includes(j.status)
+
+    // Review Reports should only show journals that have been through the review process
+    if (!hasReviews && !hasAdminDecision) return false
+
     let matchFilter = true
     if (filter === 'assigned') {
       const hasAssignments = Array.isArray(j.assignments) && j.assignments.length > 0
-      const hasReviews = Array.isArray(j.reviews) && j.reviews.length > 0
       matchFilter = hasAssignments && !hasReviews
     } else if (filter === 'under_review') {
-      matchFilter = Array.isArray(j.reviews) && j.reviews.length > 0 && j.status === 'under_review'
+      matchFilter = hasReviews && j.status === 'under_review' && (j.review_level || 0) >= 1
     }
 
     return matchSearch && matchFilter
@@ -73,7 +78,7 @@ export default function AdminReports() {
             placeholder="Search reports…" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          {['all', 'assigned', 'under_review'].map(f => (
+          {['under_review', 'assigned', 'all'].map(f => (
             <button key={f} onClick={() => setFilter(f)} className={`btn btn-sm ${filter === f ? 'btn-primary' : 'btn-outline'}`}>
               {f === 'all' ? 'All' : f === 'assigned' ? 'Assigned' : 'For Review'}
             </button>
@@ -354,92 +359,98 @@ export function ReviewReportDetail() {
           <div className="card">
             <div className="card-header"><div className="card-title">Admin Decision</div></div>
             <div className="card-content">
-              <form onSubmit={handleDecisionSubmit} className="space-y-4">
-                {/* Decision Selection */}
-                <div className="space-y-2">
-                  <p className="text-sm text-muted" style={{ marginBottom: '0.25rem' }}>Select Decision:</p>
-                  {decisionOptions.map(({ status, label, icon: Icon, color, bg }) => (
-                    <button
-                      key={status}
-                      type="button"
-                      onClick={() => setSelectedDecision(status)}
-                      className="btn btn-sm"
-                      style={{
-                        width: '100%',
-                        justifyContent: 'flex-start',
-                        gap: '0.5rem',
-                        color: selectedDecision === status ? '#fff' : color,
-                        background: selectedDecision === status ? color : bg,
-                        border: `1px solid ${color}`,
-                        fontWeight: selectedDecision === status ? 600 : 400,
-                      }}
-                    >
-                      <Icon size={16} />
-                      {label}
-                      {selectedDecision === status && <span style={{ marginLeft: 'auto', fontSize: '0.7rem', opacity: 0.9 }}>SELECTED</span>}
-                    </button>
-                  ))}
+              {reviews.length === 0 && !journal.admin_comments ? (
+                <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--muted-foreground)' }}>
+                  <p className="text-sm italic">⏳ Waiting for reviewer to submit their feedback before you can make a decision.</p>
                 </div>
+              ) : (
+                <form onSubmit={handleDecisionSubmit} className="space-y-4">
+                  {/* Decision Selection */}
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted" style={{ marginBottom: '0.25rem' }}>Select Decision:</p>
+                    {decisionOptions.map(({ status, label, icon: Icon, color, bg }) => (
+                      <button
+                        key={status}
+                        type="button"
+                        onClick={() => setSelectedDecision(status)}
+                        className="btn btn-sm"
+                        style={{
+                          width: '100%',
+                          justifyContent: 'flex-start',
+                          gap: '0.5rem',
+                          color: selectedDecision === status ? '#fff' : color,
+                          background: selectedDecision === status ? color : bg,
+                          border: `1px solid ${color}`,
+                          fontWeight: selectedDecision === status ? 600 : 400,
+                        }}
+                      >
+                        <Icon size={16} />
+                        {label}
+                        {selectedDecision === status && <span style={{ marginLeft: 'auto', fontSize: '0.7rem', opacity: 0.9 }}>SELECTED</span>}
+                      </button>
+                    ))}
+                  </div>
 
-                {/* Show form fields only after a decision is selected */}
-                {selectedDecision && (
-                  <>
-                    {/* Admin Comments */}
-                    <div className="form-group">
-                      <label className="text-sm font-medium">Comments <span style={{ color: 'var(--destructive)' }}>*</span></label>
-                      <textarea
-                        className="textarea"
-                        rows={4}
-                        placeholder="Provide your comments for the student…"
-                        value={adminComments}
-                        onChange={e => setAdminComments(e.target.value)}
-                        required
-                      />
-                    </div>
-
-                    {/* Revision Report PDF */}
-                    <div className="form-group">
-                      <label className="text-sm font-medium">Revision Report (PDF) <span style={{ color: 'var(--destructive)' }}>*</span></label>
-                      {revisionFile || journal.revision_report_url ? (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', background: 'var(--muted)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
-                          <span className="text-sm">{revisionFile ? revisionFile.name : 'Existing Document Uploaded'}</span>
-                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => {
-                            setRevisionFile(null)
-                            setJournal(prev => ({ ...prev, revision_report_url: null }))
-                          }}>✕</button>
-                        </div>
-                      ) : (
-                        <input type="file" accept=".pdf" className="input" style={{ padding: '0.4rem' }} required
-                          onChange={e => { if (e.target.files?.[0]) setRevisionFile(e.target.files[0]) }} />
-                      )}
-                    </div>
-
-                    {/* Approval Proof PDF - only for approved */}
-                    {selectedDecision === 'approved' && (
+                  {/* Show form fields only after a decision is selected */}
+                  {selectedDecision && (
+                    <>
+                      {/* Admin Comments */}
                       <div className="form-group">
-                        <label className="text-sm font-medium">Proof of Approval (PDF) <span style={{ color: 'var(--destructive)' }}>*</span></label>
-                        {approvalFile || journal.approval_proof_url ? (
+                        <label className="text-sm font-medium">Comments <span style={{ color: 'var(--destructive)' }}>*</span></label>
+                        <textarea
+                          className="textarea"
+                          rows={4}
+                          placeholder="Provide your comments for the student…"
+                          value={adminComments}
+                          onChange={e => setAdminComments(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      {/* Revision Report PDF */}
+                      <div className="form-group">
+                        <label className="text-sm font-medium">Revision Report (PDF) <span style={{ color: 'var(--destructive)' }}>*</span></label>
+                        {revisionFile || journal.revision_report_url ? (
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', background: 'var(--muted)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
-                            <span className="text-sm">{approvalFile ? approvalFile.name : 'Existing Document Uploaded'}</span>
+                            <span className="text-sm">{revisionFile ? revisionFile.name : 'Existing Document Uploaded'}</span>
                             <button type="button" className="btn btn-ghost btn-sm" onClick={() => {
-                              setApprovalFile(null)
-                              setJournal(prev => ({ ...prev, approval_proof_url: null }))
+                              setRevisionFile(null)
+                              setJournal(prev => ({ ...prev, revision_report_url: null }))
                             }}>✕</button>
                           </div>
                         ) : (
                           <input type="file" accept=".pdf" className="input" style={{ padding: '0.4rem' }} required
-                            onChange={e => { if (e.target.files?.[0]) setApprovalFile(e.target.files[0]) }} />
+                            onChange={e => { if (e.target.files?.[0]) setRevisionFile(e.target.files[0]) }} />
                         )}
                       </div>
-                    )}
 
-                    {/* Submit Button */}
-                    <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={submitting}>
-                      {submitting ? 'Submitting Decision…' : (journal.admin_comments ? 'Edit Decision' : 'Submit Decision')}
-                    </button>
-                  </>
-                )}
-              </form>
+                      {/* Approval Proof PDF - only for approved */}
+                      {selectedDecision === 'approved' && (
+                        <div className="form-group">
+                          <label className="text-sm font-medium">Proof of Approval (PDF) <span style={{ color: 'var(--destructive)' }}>*</span></label>
+                          {approvalFile || journal.approval_proof_url ? (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', background: 'var(--muted)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                              <span className="text-sm">{approvalFile ? approvalFile.name : 'Existing Document Uploaded'}</span>
+                              <button type="button" className="btn btn-ghost btn-sm" onClick={() => {
+                                setApprovalFile(null)
+                                setJournal(prev => ({ ...prev, approval_proof_url: null }))
+                              }}>✕</button>
+                            </div>
+                          ) : (
+                            <input type="file" accept=".pdf" className="input" style={{ padding: '0.4rem' }} required
+                              onChange={e => { if (e.target.files?.[0]) setApprovalFile(e.target.files[0]) }} />
+                          )}
+                        </div>
+                      )}
+
+                      {/* Submit Button */}
+                      <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={submitting}>
+                        {submitting ? 'Submitting Decision…' : (journal.admin_comments ? 'Edit Decision' : 'Submit Decision')}
+                      </button>
+                    </>
+                  )}
+                </form>
+              )}
             </div>
           </div>
         </div>

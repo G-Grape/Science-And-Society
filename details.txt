@@ -1,0 +1,21 @@
+STUDENT	
+	Name: Elbin Regi	
+	Email: elbinregi@gmail.com
+	Password: Elbin@123 
+
+REVIEWER1
+	NAME:REVIEWER
+	EMAIL:reveiw1@demo.com
+	PASSWORD:Review@123
+
+REVIEWER2
+	NAME:REVIEWER2
+	EMAIL:reveiw1@demo.com
+	PASSWORD:Review@123
+
+
+ADMIN
+	CODE:SSADMIN2026
+	NAME:ADMIN
+	EMAIL:admin@gmail.com
+	PASSWORD:Admin@123

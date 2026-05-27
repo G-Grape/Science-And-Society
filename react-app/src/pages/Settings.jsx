@@ -65,12 +65,22 @@ export default function Settings() {
     setLoading(false)
   }
 
+  const validatePassword = (pwd) => {
+    if (pwd.length < 8) return 'New password must be at least 8 characters.'
+    if (!/[0-9]/.test(pwd)) return 'New password must contain at least one number.'
+    if (!/[A-Z]/.test(pwd)) return 'New password must contain at least one uppercase letter.'
+    return ''
+  }
+
   const handleUpdatePassword = async (e) => {
     e.preventDefault()
-    if (newPassword.length < 6) {
-      toast.error('New password must be at least 6 characters')
+    
+    const pwdErr = validatePassword(newPassword)
+    if (pwdErr) {
+      toast.error(pwdErr)
       return
     }
+
     if (newPassword !== confirmPassword) {
       toast.error('New passwords do not match')
       return
@@ -174,12 +184,17 @@ export default function Settings() {
                   <label>New Password</label>
                   <input 
                     type="password" 
-                    placeholder="Min 6 characters" 
+                    placeholder="Create new password" 
                     className="input" 
                     value={newPassword} 
                     onChange={(e) => setNewPassword(e.target.value)} 
                     required 
                   />
+                  <ul className="fp-pw-rules" style={{ marginTop: '0.75rem' }}>
+                    <li className={newPassword.length >= 8 ? 'met' : ''}>At least 8 characters</li>
+                    <li className={/[0-9]/.test(newPassword) ? 'met' : ''}>At least one number</li>
+                    <li className={/[A-Z]/.test(newPassword) ? 'met' : ''}>At least one uppercase letter</li>
+                  </ul>
                 </div>
                 <div className="form-group">
                   <label>Confirm New Password</label>

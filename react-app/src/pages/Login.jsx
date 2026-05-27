@@ -21,14 +21,30 @@ export default function Login() {
     try {
       const { user } = await signIn(form.email, form.password)
 
-      // Fetch the profile to get the role for redirect
+      // Fetch the profile to get the role, status, and name for redirect
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('role')
+        .select('name, role, status')
         .eq('id', user.id)
         .single()
 
       if (profileError) throw profileError
+
+      // Block pending reviewers and redirect them to info page
+      if (profileData.status === 'pending') {
+        await supabase.auth.signOut()
+        setLoading(false)
+        navigate('/pending-approval', { state: { name: profileData.name } })
+        return
+      }
+
+      // Block inactive accounts
+      if (profileData.status === 'inactive') {
+        await supabase.auth.signOut()
+        toast.error('Your account has been deactivated. Please contact an administrator.')
+        setLoading(false)
+        return
+      }
 
       toast.success('Welcome back!')
 
@@ -81,12 +97,8 @@ export default function Login() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'normal', cursor: 'pointer' }}>
-                  <input type="checkbox" />
-                  <span style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>Remember me</span>
-                </label>
-                <a href="#" className="auth-link" style={{ fontSize: '0.875rem' }}>Forgot password?</a>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Link to="/forgot-password" className="auth-link" style={{ fontSize: '0.875rem' }}>Forgot password?</Link>
               </div>
 
               <button type="submit" className="btn btn-primary w-full" disabled={loading}>

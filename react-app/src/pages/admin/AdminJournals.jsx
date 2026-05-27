@@ -10,9 +10,9 @@ export default function AdminJournals() {
   const toast = useToast()
   const navigate = useNavigate()
   const [journals, setJournals] = useState([])
-  const [loading,  setLoading]  = useState(true)
-  const [search,   setSearch]   = useState('')
-  const [filter,   setFilter]   = useState('all')
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState('all')
   const [updating, setUpdating] = useState(null) // journalId being updated
 
   useEffect(() => { fetchJournals() }, [])
@@ -68,7 +68,7 @@ export default function AdminJournals() {
   const filtered = journals.filter(j => {
     const authorName = j.profiles?.name ?? ''
     const matchSearch = j.title.toLowerCase().includes(search.toLowerCase()) ||
-                        authorName.toLowerCase().includes(search.toLowerCase())
+      authorName.toLowerCase().includes(search.toLowerCase())
     const matchFilter = filter === 'all' || j.status === filter
     return matchSearch && matchFilter
   })
@@ -124,33 +124,38 @@ export default function AdminJournals() {
             <tbody>
               {loading ? (
                 <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted-foreground)' }}>Loading journals…</td></tr>
-              ) : filtered.map(j => (
-                <tr key={j.id}>
-                  <td style={{ maxWidth: '240px' }}>
-                    <p style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{j.title}</p>
-                  </td>
-                  <td style={{ whiteSpace: 'nowrap' }}>{j.profiles?.name ?? '—'}</td>
-                  <td style={{ whiteSpace: 'nowrap' }}>{j.reviewerName}</td>
-                  <td style={{ whiteSpace: 'nowrap' }}><span className="badge badge-secondary">{j.category}</span></td>
-                  <td style={{ whiteSpace: 'nowrap', color: 'var(--muted-foreground)', fontSize: '0.8125rem' }}>
-                    {new Date(j.created_at).toLocaleDateString()}
-                  </td>
-                  <td>
-                    {j.computedLevel !== null
-                      ? <span className="badge badge-outline">Level {j.computedLevel}</span>
-                      : <span className="text-muted text-xs">—</span>}
-                  </td>
-                  <td><span className={`status-${j.status}`}>{statusLabels[j.status]}</span></td>
-                  <td>
-                    <div className="table-actions">
-                      <button className="btn btn-ghost btn-icon" title="View Review Report"
-                        onClick={() => navigate(`/admin/reports/${j.id}`)}>
-                        <Eye size={15} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              ) : filtered.map(j => {
+                const isUnassigned = j.reviewerName === '—'
+                return (
+                  <tr key={j.id} style={isUnassigned ? { border: '2px solid #dc2626', background: '#fef2f2' } : {}}>
+                    <td style={{ maxWidth: '240px' }}>
+                      <p style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{j.title}</p>
+                    </td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{j.profiles?.name ?? '—'}</td>
+                    <td style={{ whiteSpace: 'nowrap', color: isUnassigned ? '#dc2626' : 'inherit', fontWeight: isUnassigned ? 600 : 'normal' }}>
+                      {isUnassigned ? 'Unassigned' : j.reviewerName}
+                    </td>
+                    <td style={{ whiteSpace: 'nowrap' }}><span className="badge badge-secondary">{j.category}</span></td>
+                    <td style={{ whiteSpace: 'nowrap', color: 'var(--muted-foreground)', fontSize: '0.8125rem' }}>
+                      {new Date(j.created_at).toLocaleDateString()}
+                    </td>
+                    <td>
+                      {j.computedLevel !== null
+                        ? <span className="badge badge-outline">Level {j.computedLevel}</span>
+                        : <span className="text-muted text-xs">—</span>}
+                    </td>
+                    <td><span className={`status-${j.status}`}>{statusLabels[j.status]}</span></td>
+                    <td>
+                      <div className="table-actions">
+                        <button className="btn btn-ghost btn-icon" title="View Review Report"
+                          onClick={() => navigate(`/admin/reports/${j.id}`)}>
+                          <Eye size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
               {!loading && filtered.length === 0 && (
                 <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--muted-foreground)', padding: '2rem' }}>No journals found</td></tr>
               )}

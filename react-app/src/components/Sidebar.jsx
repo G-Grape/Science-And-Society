@@ -34,6 +34,7 @@ function SidebarContent({ role, onClose }) {
   const { signOut } = useAuth()
   const [forReviewCount, setForReviewCount] = useState(0)
   const [forAssignCount, setForAssignCount] = useState(0)
+  const [pendingUsersCount, setPendingUsersCount] = useState(0)
 
   useEffect(() => {
     if (role === 'admin') {
@@ -46,7 +47,17 @@ function SidebarContent({ role, onClose }) {
           setForAssignCount(assignCount)
         }
       }
+      const fetchPendingUsers = async () => {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('status', 'pending')
+        if (!error && data) {
+          setPendingUsersCount(data.length)
+        }
+      }
       fetchCount()
+      fetchPendingUsers()
     }
   }, [role])
 
@@ -112,6 +123,23 @@ function SidebarContent({ role, onClose }) {
                 padding: '0 6px',
               }}>
                 {forAssignCount}
+              </span>
+            )}
+            {to === '/admin/users' && pendingUsersCount > 0 && (
+              <span style={{
+                background: '#f59e0b',
+                color: '#fff',
+                fontSize: '0.7rem',
+                fontWeight: 'bold',
+                minWidth: '20px',
+                height: '20px',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0 6px',
+              }}>
+                {pendingUsersCount}
               </span>
             )}
           </Link>

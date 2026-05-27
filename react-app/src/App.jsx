@@ -6,26 +6,28 @@ import { Footer } from './components/Footer'
 import { DashboardSidebar } from './components/Sidebar'
 
 // Pages
-import Home            from './pages/Home'
-import Login           from './pages/Login'
-import Register        from './pages/Register'
+import Home from './pages/Home'
+import Login from './pages/Login'
+import Register from './pages/Register'
 import PublishedIssues from './pages/PublishedIssues'
+import ForgotPassword from './pages/ForgotPassword'
+import PendingApproval from './pages/PendingApproval'
 
-import StudentDashboard     from './pages/student/StudentDashboard'
-import UploadJournal        from './pages/student/UploadJournal'
+import StudentDashboard from './pages/student/StudentDashboard'
+import UploadJournal from './pages/student/UploadJournal'
 import { StudentJournals, StudentJournalDetail } from './pages/student/Journals'
-import StudentGuidelines    from './pages/student/Guidelines'
+import StudentGuidelines from './pages/student/Guidelines'
 
-import ReviewerDashboard    from './pages/reviewer/ReviewerDashboard'
+import ReviewerDashboard from './pages/reviewer/ReviewerDashboard'
 import { AssignedJournals, ReviewJournal } from './pages/reviewer/AssignedJournals'
 
-import AdminDashboard       from './pages/admin/AdminDashboard'
-import AdminJournals        from './pages/admin/AdminJournals'
-import AdminUsers           from './pages/admin/AdminUsers'
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminJournals from './pages/admin/AdminJournals'
+import AdminUsers from './pages/admin/AdminUsers'
 import AdminReports, { ReviewReportDetail } from './pages/admin/AdminReports'
-import AssignReviewers      from './pages/admin/AssignReviewers'
+import AssignReviewers from './pages/admin/AssignReviewers'
 
-import Settings             from './pages/Settings'
+import Settings from './pages/Settings'
 
 /* ── Auth guards ──────────────────────────────────────────────────── */
 function GuestRoute({ children }) {
@@ -42,7 +44,10 @@ function GuestRoute({ children }) {
   }
 
   if (user && profile) {
-    if (profile.role === 'admin')    return <Navigate to="/admin/dashboard" replace />
+    if (profile.status === 'pending' || profile.status === 'inactive') {
+      return children
+    }
+    if (profile.role === 'admin') return <Navigate to="/admin/dashboard" replace />
     if (profile.role === 'reviewer') return <Navigate to="/reviewer/dashboard" replace />
     return <Navigate to="/student/dashboard" replace />
   }
@@ -51,7 +56,7 @@ function GuestRoute({ children }) {
 }
 
 function ProtectedRoute({ children, allowedRoles }) {
-  const { user, profile, loading } = useAuth()
+  const { user, profile, loading, signOut } = useAuth()
 
   if (loading) {
     return (
@@ -66,9 +71,20 @@ function ProtectedRoute({ children, allowedRoles }) {
 
   if (!user) return <Navigate to="/login" replace />
 
+  if (profile) {
+    if (profile.status === 'pending') {
+      signOut()
+      return <Navigate to="/pending-approval" replace state={{ name: profile.name }} />
+    }
+    if (profile.status === 'inactive') {
+      signOut()
+      return <Navigate to="/login" replace />
+    }
+  }
+
   if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
     // Wrong role — redirect to their correct dashboard
-    if (profile.role === 'admin')    return <Navigate to="/admin/dashboard"    replace />
+    if (profile.role === 'admin') return <Navigate to="/admin/dashboard" replace />
     if (profile.role === 'reviewer') return <Navigate to="/reviewer/dashboard" replace />
     return <Navigate to="/student/dashboard" replace />
   }
@@ -108,10 +124,12 @@ export default function App() {
         <ToastProvider>
           <Routes>
             {/* Public */}
-            <Route path="/"         element={<PublicLayout><Home /></PublicLayout>} />
+            <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
             <Route path="/published-issues" element={<PublicLayout><PublishedIssues /></PublicLayout>} />
-            <Route path="/login"    element={<GuestRoute><Login /></GuestRoute>} />
+            <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
             <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/pending-approval" element={<PendingApproval />} />
 
             {/* Student */}
             <Route path="/student/dashboard" element={
