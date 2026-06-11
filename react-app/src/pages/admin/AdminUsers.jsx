@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Search, Trash2, RefreshCw, CheckCircle2, XCircle, Clock } from 'lucide-react'
 import { useToast } from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
+import ConfirmModal from '../../components/ConfirmModal'
 
 export default function AdminUsers() {
   const toast = useToast()
@@ -10,6 +11,11 @@ export default function AdminUsers() {
   const [search,     setSearch]     = useState('')
   const [roleFilter, setRoleFilter] = useState('student')
   const [actionLoading, setActionLoading] = useState(null) // track which user action is in progress
+
+  // Confirmation Modal state
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [confirmData, setConfirmData] = useState(null)
+  const [confirmLoading, setConfirmLoading] = useState(false)
 
   useEffect(() => { fetchUsers() }, [])
 
@@ -51,6 +57,20 @@ export default function AdminUsers() {
       window.dispatchEvent(new Event('users-updated'))
     }
     setActionLoading(null)
+  }
+
+  function triggerDelete(userId, name) {
+    setConfirmData({ userId, name })
+    setConfirmOpen(true)
+  }
+
+  async function handleConfirmDelete() {
+    if (!confirmData) return
+    setConfirmLoading(true)
+    await deleteUser(confirmData.userId)
+    setConfirmLoading(false)
+    setConfirmOpen(false)
+    setConfirmData(null)
   }
 
   const filtered = users.filter(u => {
@@ -194,7 +214,7 @@ export default function AdminUsers() {
                             }}
                             disabled={actionLoading === u.id}
                             title="Reject & delete"
-                            onClick={() => deleteUser(u.id)}
+                            onClick={() => triggerDelete(u.id, u.name)}
                           >
                             <XCircle size={14} /> Reject
                           </button>
@@ -202,7 +222,7 @@ export default function AdminUsers() {
                       ) : (
                         <button className="btn btn-ghost btn-icon" title="Delete"
                           style={{ color: 'var(--destructive)' }}
-                          onClick={() => deleteUser(u.id)}>
+                          onClick={() => triggerDelete(u.id, u.name)}>
                           <Trash2 size={15} />
                         </button>
                       )}
@@ -220,6 +240,17 @@ export default function AdminUsers() {
           Showing {filtered.length} of {users.length} users
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete User?"
+        message={`Are you sure you want to delete ${confirmData?.name ?? 'this user'}? This will remove all their reviews, assignments, and account records forever.`}
+        confirmText="Delete"
+        loading={confirmLoading}
+        type="danger"
+      />
     </div>
   )
 }

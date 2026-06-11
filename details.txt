@@ -19,3 +19,10 @@ ADMIN
 	NAME:ADMIN
 	EMAIL:admin@gmail.com
 	PASSWORD:Admin@123
+
+make a notification icon at top for all students,reviewers and  students which opens a pop up window .
+for students the levels and stages of journals should be shown 
+for admin the all request and approval should be shown
+for reviewer the notification of new assigned reviews and all other should be 
+
+all the unread notification should be marked with numbers on the icon and latest 8 read notification should be  styored all other should be deleted

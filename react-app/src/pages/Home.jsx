@@ -34,13 +34,13 @@ function IssuesSidebar() {
 
   useEffect(() => {
     async function fetchIssues() {
-      // Fetch approved/accepted journals
-      const { data } = await supabase
-        .from('journals')
-        .select('id, title, abstract, created_at, profiles(name)')
-        .in('status', ['approved', 'Accepted'])
+      // Query the published_issues view (bypasses RLS — safe for public home page)
+      const { data, error } = await supabase
+        .from('published_issues')
+        .select('id, title, abstract, created_at, author_name')
         .order('created_at', { ascending: false })
         .limit(5)
+      if (error) console.error('IssuesSidebar fetch error:', error)
       setIssues(data ?? [])
       setLoading(false)
     }
@@ -68,7 +68,7 @@ function IssuesSidebar() {
                   {issue.title}
                 </h3>
                 <p className="text-xs text-muted" style={{ marginBottom: '0.5rem' }}>
-                  by {issue.profiles?.name || 'Unknown Author'} • {new Date(issue.created_at).toLocaleDateString()}
+                  by {issue.author_name || 'Unknown Author'} • {new Date(issue.created_at).toLocaleDateString()}
                 </p>
                 {issue.abstract?.startsWith('http') ? (
                   <a href={issue.abstract} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm" style={{ display: 'inline-flex', marginTop: '0.25rem' }}>

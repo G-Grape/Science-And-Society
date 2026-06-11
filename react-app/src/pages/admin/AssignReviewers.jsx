@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Search, UserCheck, UserPlus, RefreshCw } from 'lucide-react'
 import { useToast } from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
+import ConfirmModal from '../../components/ConfirmModal'
 
 export default function AssignReviewers() {
   const toast = useToast()
@@ -11,6 +12,11 @@ export default function AssignReviewers() {
   const [selected, setSelected] = useState(null)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+
+  // Confirmation Modal state
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [confirmData, setConfirmData] = useState(null)
+  const [confirmLoading, setConfirmLoading] = useState(false)
 
   useEffect(() => { fetchAll() }, [])
 
@@ -24,8 +30,9 @@ export default function AssignReviewers() {
         .order('created_at', { ascending: false }),
       supabase
         .from('profiles')
-        .select('id, name, role')
-        .eq('role', 'reviewer'),
+        .select('id, name, role, status')
+        .eq('role', 'reviewer')
+        .eq('status', 'active'),  // Only admin-approved reviewers
       supabase
         .from('assignments')
         .select('id, journal_id, reviewer_id, profiles(name)'),
@@ -73,7 +80,6 @@ export default function AssignReviewers() {
     }))
 
     // Also update journal status to under_review if it was submitted
-    const journal = journals.find(j => j.id === journalId)
     if (journal) {
       await supabase.from('journals').update({ status: 'under_review' }).eq('id', journalId)
       setJournals(prev => prev.filter(j => j.id !== journalId))
@@ -99,6 +105,20 @@ export default function AssignReviewers() {
     }
 
     toast.success(`${reviewerName} removed`)
+  }
+
+  function triggerRemove(journalId, assignmentId, reviewerName) {
+    setConfirmData({ journalId, assignmentId, reviewerName })
+    setConfirmOpen(true)
+  }
+
+  async function handleConfirmRemove() {
+    if (!confirmData) return
+    setConfirmLoading(true)
+    await removeReviewer(confirmData.journalId, confirmData.assignmentId, confirmData.reviewerName)
+    setConfirmLoading(false)
+    setConfirmOpen(false)
+    setConfirmData(null)
   }
 
   const filteredJournals = journals.filter(j =>
@@ -169,7 +189,7 @@ export default function AssignReviewers() {
                               <UserCheck size={12} /> {a.profiles?.name ?? '—'}
                               <button
                                 style={{ marginLeft: '0.25rem', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1, color: 'var(--muted-foreground)' }}
-                                onClick={(e) => { e.stopPropagation(); removeReviewer(j.id, a.id, a.profiles?.name) }}
+                                onClick={(e) => { e.stopPropagation(); triggerRemove(j.id, a.id, a.profiles?.name) }}
                                 title={`Remove ${a.profiles?.name}`}
                               >×</button>
                             </span>
@@ -192,10 +212,17 @@ export default function AssignReviewers() {
                 <div className="card-description">
                   {selected ? 'Click to assign to selected journal' : 'Select a journal first'}
                 </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--primary)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', display: 'inline-block' }} />
+                  Approved reviewers only
+                </div>
               </div>
               <div className="card-content space-y-4">
                 {reviewers.length === 0 && (
-                  <p className="text-sm text-muted">No reviewers registered yet.</p>
+                  <div style={{ textAlign: 'center', padding: '1rem 0', color: 'var(--muted-foreground)' }}>
+                    <p className="text-sm">No approved reviewers yet.</p>
+                    <p className="text-xs" style={{ marginTop: '0.25rem' }}>Go to <strong>Manage Users</strong> to approve pending reviewers.</p>
+                  </div>
                 )}
                 {reviewers.map(r => {
                   const alreadyAssigned = selected && (assignments[selected] ?? []).some(a => a.reviewer_id === r.id)
@@ -222,6 +249,17 @@ export default function AssignReviewers() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleConfirmRemove}
+        title="Remove Reviewer?"
+        message={`Are you sure you want to remove ${confirmData?.reviewerName ?? 'the reviewer'} from this journal?`}
+        confirmText="Remove"
+        loading={confirmLoading}
+        type="danger"
+      />
     </div>
   )
 }

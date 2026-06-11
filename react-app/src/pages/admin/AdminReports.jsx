@@ -9,7 +9,7 @@ export default function AdminReports() {
   const [journals, setJournals] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState('under_review')
+  const [filter, setFilter] = useState('all')
 
   useEffect(() => { fetchJournals() }, [])
 
@@ -133,6 +133,7 @@ export function ReviewReportDetail() {
   const [journal, setJournal] = useState(null)
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
+  const [isEditingDecision, setIsEditingDecision] = useState(false)
 
   // Admin decision form state
   const [selectedDecision, setSelectedDecision] = useState(null)
@@ -159,6 +160,9 @@ export function ReviewReportDetail() {
       if (j.admin_comments) setAdminComments(j.admin_comments)
       if (['approved', 'rejected', 'revision_required'].includes(j.status)) {
         setSelectedDecision(j.status)
+        setIsEditingDecision(false)
+      } else {
+        setIsEditingDecision(true)
       }
     }
     setLoading(false)
@@ -224,6 +228,7 @@ export function ReviewReportDetail() {
         approval_proof_url: selectedDecision === 'approved' ? approvalUrl : null,
       }))
       toast.success(`Decision submitted — ${selectedDecision === 'approved' ? 'Approved' : selectedDecision === 'rejected' ? 'Rejected' : 'Revision Required'}`)
+      setIsEditingDecision(false)
     } catch (err) {
       toast.error(err.message || 'Failed to submit decision')
     }
@@ -363,7 +368,45 @@ export function ReviewReportDetail() {
                 <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--muted-foreground)' }}>
                   <p className="text-sm italic">⏳ Waiting for reviewer to submit their feedback before you can make a decision.</p>
                 </div>
+              ) : !isEditingDecision && journal.admin_comments ? (
+                /* ── Read-only View after Decision is made ── */
+                <div className="space-y-4 animate-fade-in">
+                  <div>
+                    <p className="text-xs font-semibold text-muted" style={{ textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Decision</p>
+                    <span className={`status-${journal.status}`}>
+                      {journal.status === 'approved' ? 'Approved' : journal.status === 'rejected' ? 'Rejected' : 'Revision Required'}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-muted" style={{ textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Comments</p>
+                    <p className="text-sm" style={{ whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>{journal.admin_comments}</p>
+                  </div>
+                  {(journal.revision_report_url || journal.approval_proof_url) && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-muted" style={{ textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Documents Uploaded</p>
+                      {journal.revision_report_url && (
+                        <a href={journal.revision_report_url} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm" style={{ width: '100%', justifyContent: 'flex-start' }}>
+                          <Download size={14} /> Download Revision Report (PDF)
+                        </a>
+                      )}
+                      {journal.approval_proof_url && (
+                        <a href={journal.approval_proof_url} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm" style={{ width: '100%', justifyContent: 'flex-start' }}>
+                          <Download size={14} /> Download Proof of Approval (PDF)
+                        </a>
+                      )}
+                    </div>
+                  )}
+                  <button 
+                    type="button" 
+                    className="btn btn-outline w-full"
+                    style={{ marginTop: '0.75rem', borderColor: 'var(--primary)', color: 'var(--primary)' }}
+                    onClick={() => setIsEditingDecision(true)}
+                  >
+                    ✏️ Edit Decision
+                  </button>
+                </div>
               ) : (
+                /* ── Editing / Creation Form View ── */
                 <form onSubmit={handleDecisionSubmit} className="space-y-4">
                   {/* Decision Selection */}
                   <div className="space-y-2">
@@ -443,10 +486,28 @@ export function ReviewReportDetail() {
                         </div>
                       )}
 
-                      {/* Submit Button */}
-                      <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={submitting}>
-                        {submitting ? 'Submitting Decision…' : (journal.admin_comments ? 'Edit Decision' : 'Submit Decision')}
-                      </button>
+                      {/* Submit Button & Cancel button (if editing existing) */}
+                      <div className="space-y-2">
+                        <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={submitting}>
+                          {submitting ? 'Submitting Decision…' : (journal.admin_comments ? 'Save Decision' : 'Submit Decision')}
+                        </button>
+                        {journal.admin_comments && (
+                          <button 
+                            type="button" 
+                            className="btn btn-outline" 
+                            style={{ width: '100%' }} 
+                            onClick={() => {
+                              // Reset edits and close form
+                              setAdminComments(journal.admin_comments)
+                              setSelectedDecision(journal.status)
+                              setIsEditingDecision(false)
+                            }}
+                            disabled={submitting}
+                          >
+                            Cancel Edit
+                          </button>
+                        )}
+                      </div>
                     </>
                   )}
                 </form>
