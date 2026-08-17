@@ -1,0 +1,83 @@
+name: Deep Audit
+
+on:
+  push:
+    branches: [audit/deep-test-2026-08-17]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Frontend lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Frontend build
+        working-directory: frontend
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: audit-placeholder
+          VITE_TURNSTILE_SITE_KEY: audit-placeholder
+        run: npm run build
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Backend syntax checks
+        working-directory: backend
+        shell: bash
+        run: |
+          set -e
+          find . -type f -name '*.js' -not -path './node_modules/*' -print0 | xargs -0 -n1 node --check
+
+      - name: Backend smoke test
+        working-directory: backend
+        env:
+          SUPABASE_URL: https://example.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: audit-placeholder
+          EMAIL_USER: audit@example.com
+          EMAIL_PASS: audit-placeholder
+          ADMIN_SECRET_CODE: audit-placeholder
+          TURNSTILE_SECRET_KEY: audit-placeholder
+          PORT: 4173
+        shell: bash
+        run: |
+          set -e
+          node index.js > /tmp/backend.log 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/api/health; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:4173/api/health
+          echo '--- backend log ---'
+          cat /tmp/backend.log
+
+      - name: Create source archive
+        run: git archive --format=tar.gz --output=deep-audit-source.tar.gz HEAD
+
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: deep-audit-source
+          path: deep-audit-source.tar.gz
+          retention-days: 1
