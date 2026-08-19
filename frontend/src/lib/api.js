@@ -1,7 +1,14 @@
 // Central API base URL - reads from environment variable so it works in both dev and production.
-// In development: defaults to http://localhost:3001
-// In production: set VITE_API_URL in your .env file to your deployed backend URL
-export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const _configuredUrl = import.meta.env.VITE_API_URL;
+if (import.meta.env.PROD && !_configuredUrl) {
+  // SEC-001: Fail closed. Do not silently fall back to localhost in production.
+  // This prevents the app from sending sensitive Bearer tokens to a local service on port 3001.
+  throw new Error('CRITICAL: VITE_API_URL must be set in production.');
+}
+if (import.meta.env.PROD && !_configuredUrl.startsWith('https://')) {
+  throw new Error('CRITICAL: VITE_API_URL must use HTTPS in production.');
+}
+export const API_BASE = _configuredUrl || 'http://localhost:3001';
 
 import { supabase } from './supabase';
 

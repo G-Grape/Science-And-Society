@@ -121,7 +121,11 @@ export default function AssignReviewers() {
   }
 
   async function removeReviewer(journalId, assignmentId, reviewerName) {
-    const { error } = await supabase.from('assignments').delete().eq('id', assignmentId)
+    const { error } = await supabase.rpc('unassign_reviewer_from_journal', {
+      p_journal_id: journalId,
+      p_assignment_id: assignmentId
+    })
+    
     if (error) { toast.error('Failed to remove reviewer'); return }
 
     const remaining = (assignments[journalId] ?? []).filter(a => a.id !== assignmentId)
@@ -129,11 +133,6 @@ export default function AssignReviewers() {
       ...prev,
       [journalId]: remaining,
     }))
-
-    // If no assignments remain, revert status back to 'submitted'
-    if (remaining.length === 0) {
-      await supabase.from('journals').update({ status: 'submitted' }).eq('id', journalId)
-    }
 
     toast.success(`${reviewerName} removed`)
   }

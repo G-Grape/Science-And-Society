@@ -51,29 +51,19 @@ export default function AssignedPapers() {
 
     const { journalId, assignmentId, reviewerName } = confirmData
 
-    // 1. Delete the assignment row
-    const { error: delErr } = await supabase
-      .from('assignments')
-      .delete()
-      .eq('id', assignmentId)
+    // 1. Delete assignment and update status atomically via RPC
+    const { error: rpcErr } = await supabase.rpc('unassign_reviewer_from_journal', {
+      p_journal_id: journalId,
+      p_assignment_id: assignmentId
+    })
 
-    if (delErr) {
+    if (rpcErr) {
       toast.error('Failed to unassign reviewer')
       setConfirmLoading(false)
       return
     }
 
-    // 2. Revert journal status to 'submitted' (the pre-assignment state)
-    const { error: updErr } = await supabase
-      .from('journals')
-      .update({ status: 'submitted' })
-      .eq('id', journalId)
-
-    if (updErr) {
-      toast.error('Assignment removed but failed to reset journal status')
-    } else {
-      toast.success(`${reviewerName} unassigned — paper moved back to Assign Reviewers`)
-    }
+    toast.success(`${reviewerName} unassigned — paper moved back to Assign Reviewers`)
 
     // 3. Remove from local state
     setPapers(prev => prev.filter(p => p.id !== journalId))

@@ -13,6 +13,14 @@ const hashOTP = (otp) => crypto.createHash('sha256').update(otp).digest('hex');
 const validateEmail = (email) => typeof email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const validateString = (str, maxLen = 100) => typeof str === 'string' && str.trim().length > 0 && str.trim().length <= maxLen;
 
+// SEC-020: Centralize password policy (min 8 chars, 1 uppercase, 1 number)
+const validatePassword = (password) => {
+  if (typeof password !== 'string' || password.length < 8 || password.length > 255) return false;
+  if (!/[A-Z]/.test(password)) return false;
+  if (!/[0-9]/.test(password)) return false;
+  return true;
+};
+
 const validateNotTempEmail = (email) => {
   const domain = email.split('@')[1]?.toLowerCase();
   if (!domain) return false;
@@ -41,8 +49,14 @@ exports.sendRegisterOTP = async (req, res) => {
   if (!validateNotTempEmail(email)) return res.status(400).json({ error: 'Please use a standard email provider (Gmail, Outlook, etc.) or a college domain' });
   if (!['student', 'reviewer', 'admin'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
 
-  if (role === 'admin' && adminCode !== process.env.ADMIN_SECRET) {
-    return res.status(401).json({ error: 'Invalid admin secret code' });
+  if (role === 'admin') {
+    if (!process.env.ADMIN_SECRET) {
+      console.error('CRITICAL: ADMIN_SECRET is not configured in the environment');
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
+    if (!adminCode || adminCode !== process.env.ADMIN_SECRET) {
+      return res.status(401).json({ error: 'Invalid admin secret code' });
+    }
   }
 
   // Check 60-second cooldown to prevent spamming OTP requests
@@ -87,14 +101,20 @@ exports.verifyRegisterOTP = async (req, res) => {
 
   if (!validateEmail(email)) return res.status(400).json({ error: 'Invalid email format' });
   if (!validateString(otp, 6) || otp.length !== 6) return res.status(400).json({ error: 'Invalid OTP' });
-  if (!validateString(password, 255) || password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  if (!validatePassword(password)) return res.status(400).json({ error: 'Password must be at least 8 characters, with 1 uppercase letter and 1 number' });
   if (!validateString(name, 100)) return res.status(400).json({ error: 'Invalid name' });
   if (!['student', 'reviewer', 'admin'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
   
   name = name.trim(); // Sanitize name
 
-  if (role === 'admin' && adminCode !== process.env.ADMIN_SECRET) {
-    return res.status(401).json({ error: 'Invalid admin secret code' });
+  if (role === 'admin') {
+    if (!process.env.ADMIN_SECRET) {
+      console.error('CRITICAL: ADMIN_SECRET is not configured in the environment');
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
+    if (!adminCode || adminCode !== process.env.ADMIN_SECRET) {
+      return res.status(401).json({ error: 'Invalid admin secret code' });
+    }
   }
 
   const { data, error } = await supabase
@@ -164,7 +184,12 @@ exports.sendResetOTP = async (req, res) => {
 
   // Ensure email exists before sending reset OTP
   const { data: existingUser } = await supabase.from('profiles').select('id').eq('email', email).single();
-  if (!existingUser) return res.status(404).json({ error: 'User not found' });
+  // SEC-015: Prevent account enumeration by returning a generic success message
+  if (!existingUser) {
+    // Deliberate delay to prevent timing attacks, then return fake success
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 500));
+    return res.status(200).json({ message: 'If this email is registered, a reset code has been sent.' });
+  }
 
   const otp = generateOTP();
   const expiresAt = new Date(Date.now() + 10 * 60000).toISOString();
@@ -181,7 +206,7 @@ exports.sendResetOTP = async (req, res) => {
 
   if (!sent) return res.status(500).json({ error: 'Failed to send email' });
 
-  res.status(200).json({ message: 'Reset OTP sent' });
+  res.status(200).json({ message: 'If this email is registered, a reset code has been sent.' });
 };
 
 exports.verifyResetOTP = async (req, res) => {
@@ -189,7 +214,7 @@ exports.verifyResetOTP = async (req, res) => {
 
   if (!validateEmail(email)) return res.status(400).json({ error: 'Invalid email format' });
   if (!validateString(otp, 6) || otp.length !== 6) return res.status(400).json({ error: 'Invalid OTP' });
-  if (!validateString(newPassword, 255) || newPassword.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  if (!validatePassword(newPassword)) return res.status(400).json({ error: 'Password must be at least 8 characters, with 1 uppercase letter and 1 number' });
 
   const { data, error } = await supabase
     .from('custom_otps')

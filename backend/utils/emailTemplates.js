@@ -182,7 +182,7 @@ exports.generateReworkResubmittedNotification = (studentName, journalTitle) => r
   `,
   customContent: '<p>This paper has returned to the queue as a <strong>Reworked Paper</strong>. You can view the previous reviewer details and assign it for second-round review.</p>',
   actionText: 'Assign Reviewer',
-  actionUrl: `${APP_URL}/admin/assign`
+  actionUrl: `${APP_URL}/admin/reviewers`
 });
 
 exports.generateDecisionNotification = (studentName, journalTitle, status) => {

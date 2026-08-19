@@ -6,7 +6,7 @@ import { sendNotification } from '../lib/api'
 import { useToast } from '../components/Toast'
 
 export default function NotificationsPage() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const toast = useToast()
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -320,7 +320,7 @@ export default function NotificationsPage() {
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0 }}>
-                    {isContact && (
+                    {isContact && profile?.role === 'admin' && (
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();

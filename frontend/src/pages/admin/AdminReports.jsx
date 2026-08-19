@@ -212,15 +212,13 @@ export function ReviewReportDetail() {
         approvalUrl = fileName
       }
 
-      const { error } = await supabase
-        .from('journals')
-        .update({
-          status: selectedDecision,
-          admin_comments: adminComments,
-          approval_proof_url: selectedDecision === 'accepted' ? approvalUrl : null,
-          revision_report_url: (selectedDecision === 'rework' || selectedDecision === 'revision_required') ? journal.revision_report_url : null,
-        })
-        .eq('id', id)
+      const { error } = await supabase.rpc('admin_make_decision', {
+        p_journal_id: id,
+        p_status: selectedDecision,
+        p_admin_comments: adminComments,
+        p_approval_proof_url: selectedDecision === 'accepted' ? approvalUrl : null,
+        p_revision_report_url: (selectedDecision === 'rework' || selectedDecision === 'revision_required') ? journal.revision_report_url : null
+      })
 
       if (error) throw error
 

@@ -78,7 +78,7 @@ export default function Login() {
             </div>
             <div style={{ position: 'relative' }}>
               <input 
-                id="login-password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" className="input" 
+                id="login-password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" className="input" 
                 placeholder="••••••••" 
                 value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} 
                 style={{ padding: '0.875rem 3rem 0.875rem 1rem', fontSize: '1rem', borderRadius: 'calc(var(--radius) * 0.75)' }}

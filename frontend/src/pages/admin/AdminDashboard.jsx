@@ -172,7 +172,7 @@ export default function AdminDashboard() {
           <Link to="/admin/journals"      className="btn btn-outline" style={{ justifyContent: 'center' }}>Manage Journals</Link>
           <Link to="/admin/users"         className="btn btn-outline" style={{ justifyContent: 'center' }}>Manage Users</Link>
           <Link to="/admin/reviewers"     className="btn btn-outline" style={{ justifyContent: 'center' }}>Assign Reviewers</Link>
-          <Link to="/admin/current-issue" className="btn btn-outline" style={{ justifyContent: 'center' }}>Current Issue Settings</Link>
+          <Link to="/admin/compile-issue" className="btn btn-outline" style={{ justifyContent: 'center' }}>Current Issue Settings</Link>
         </div>
       </div>
     </div>

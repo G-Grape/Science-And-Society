@@ -72,7 +72,7 @@ function GuestRoute({ children }) {
 }
 
 function ProtectedRoute({ children, allowedRoles }) {
-  const { user, profile, loading, signOut } = useAuth()
+  const { user, profile, loading, profileError, signOut } = useAuth()
 
   if (loading) {
     return (
@@ -86,6 +86,14 @@ function ProtectedRoute({ children, allowedRoles }) {
   }
 
   if (!user) return <Navigate to="/login" replace />
+  
+  // SEC-021: If profile load failed (e.g. network error, DB issue, missing row),
+  // do not allow access to protected routes. Force sign out and redirect to login.
+  // Without this, a null profile would bypass the role check below.
+  if (profileError) {
+    signOut()
+    return <Navigate to="/login" replace />
+  }
 
   if (profile) {
     if (profile.status === 'pending') {

@@ -121,11 +121,9 @@ export default function AdminJournals() {
     }
 
     try {
-      const { error } = await supabase
-        .from('journals')
-        .update({ status: 'accepted' })
-        .eq('id', journalId)
-
+      const { error } = await supabase.rpc('unpublish_journal', {
+        p_journal_id: journalId
+      })
       if (error) throw error
 
       toast.success('Paper unpublished and moved back to Accepted')

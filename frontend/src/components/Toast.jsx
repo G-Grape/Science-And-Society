@@ -8,16 +8,16 @@ let toastId = 0
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([])
 
-  const toast = useCallback(({ message, type = 'default' }) => {
+  const toast = useCallback(({ message, type = 'default', duration = 3500 }) => {
     const id = ++toastId
     setToasts(prev => [...prev, { id, message, type }])
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id))
-    }, 3500)
+    }, duration)
   }, [])
 
-  toast.success = (msg) => toast({ message: msg, type: 'success' })
-  toast.error   = (msg) => toast({ message: msg, type: 'error' })
+  toast.success = (msg, opts = {}) => toast({ message: msg, type: 'success', duration: opts.duration })
+  toast.error   = (msg, opts = {}) => toast({ message: msg, type: 'error', duration: opts.duration })
 
   return (
     <ToastContext.Provider value={toast}>

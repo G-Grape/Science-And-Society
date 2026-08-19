@@ -76,36 +76,15 @@ export default function AdminCompileIssue() {
 
     setSubmitting(true)
     try {
-      // 1. Update all selected papers with the new volume and issue number
+      // Execute atomic compile transaction via RPC
       const selectedIds = Array.from(selectedPapers)
-      const { error: updateError } = await supabase
-        .from('journals')
-        .update({
-          volume_number: form.volume_number.trim(),
-          issue_number: form.issue_number.trim(),
-          published_at: new Date().toISOString()
-        })
-        .in('id', selectedIds)
+      const { error: rpcError } = await supabase.rpc('admin_compile_issue', {
+        p_volume: form.volume_number.trim(),
+        p_issue: form.issue_number.trim(),
+        p_journal_ids: selectedIds
+      })
 
-      if (updateError) throw updateError
-
-      // 2. Update the current_issue table so the frontend knows this is the new "Current Issue"
-      const { error: issueError } = await supabase
-        .from('current_issue')
-        .update({
-          volume_number: form.volume_number.trim(),
-          issue_number: form.issue_number.trim()
-        })
-        .eq('id', 1)
-
-      if (issueError) {
-        // Attempt manual rollback to prevent inconsistent state
-        await supabase
-          .from('journals')
-          .update({ volume_number: null, issue_number: null })
-          .in('id', selectedIds)
-        throw new Error(`Failed to update current issue state. Papers have been rolled back to prevent inconsistencies.`)
-      }
+      if (rpcError) throw rpcError
 
       toast.success(`Successfully published Volume ${form.volume_number} Issue ${form.issue_number}`)
 

@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Search, X, Send } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { sendNotification } from '../lib/api'
 import { useToast } from '../components/Toast'
+import { Turnstile } from '@marsidev/react-turnstile'
 import { AnimatedSection, StaggerContainer, StaggerItem } from '../components/ui/AnimatedSection'
 import { Card3D } from '../components/ui/Card3D'
 import { GoldUnderline } from '../components/ui/GoldUnderline'
@@ -23,6 +25,7 @@ export default function PublishedIssues() {
   const [requesterName, setRequesterName] = useState('')
   const [requesterEmail, setRequesterEmail] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState(null)
 
   useEffect(() => {
     fetchIssues()
@@ -57,20 +60,32 @@ export default function PublishedIssues() {
 
   const handleRequestSubmit = async (e) => {
     e.preventDefault()
+    if (!turnstileToken) {
+      toast.error('Please complete the CAPTCHA verification')
+      return
+    }
     setSubmitting(true)
 
-    const { error } = await supabase.from('paper_requests').insert({
-      journal_id: selectedJournal.id,
-      journal_title: selectedJournal.title,
-      requester_name: requesterName,
-      requester_email: requesterEmail
-    })
+    try {
+      const res = await sendNotification('/api/notify/paper-request', {
+        journalId: selectedJournal.id,
+        journalTitle: selectedJournal.title,
+        requesterName: requesterName,
+        requesterEmail: requesterEmail,
+        affiliation: '',
+        reason: '',
+        website_url: '',
+        turnstileToken
+      })
 
-    if (error) {
-      toast.error('Failed to submit request. Please try again later.')
-    } else {
-      toast.success('Access request submitted! The administrative team will contact you.')
-      closeRequestModal()
+      if (!res || !res.ok) {
+        toast.error('Failed to submit request. Please try again later.')
+      } else {
+        toast.success('Access request submitted! The administrative team will contact you.')
+        closeRequestModal()
+      }
+    } catch (error) {
+      toast.error('An error occurred. Please try again.')
     }
     setSubmitting(false)
   }
@@ -208,6 +223,13 @@ export default function PublishedIssues() {
                   <label>Your Email</label>
                   <input type="email" className="input" placeholder="john@university.edu" value={requesterEmail} onChange={e => setRequesterEmail(e.target.value)} required />
                   <p className="text-xs text-muted mt-1">We will send the PDF file to this email.</p>
+                </div>
+                <div className="form-group" style={{ display: 'flex', justifyContent: 'center' }}>
+                  <Turnstile 
+                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'} 
+                    onSuccess={(token) => setTurnstileToken(token)} 
+                    onError={() => toast.error('CAPTCHA failed to load')}
+                  />
                 </div>
                 <button type="submit" className="btn btn-primary w-full" disabled={submitting}>
                   {submitting ? 'Sending Request...' : 'Send Request to Admin'}

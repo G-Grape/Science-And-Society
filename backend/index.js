@@ -44,29 +44,46 @@ app.use(helmet({
   hidePoweredBy: true,
 }));
 
-// Secure CORS: Restrict origins in production/dev
-const allowedOrigins = process.env.FRONTEND_URL 
-  ? [process.env.FRONTEND_URL, 'http://localhost:5173', 'http://localhost:3000']
+// Secure CORS: In production (FRONTEND_URL is set), only allow that origin.
+// In development (no FRONTEND_URL), allow localhost as usual.
+// API-003: Removing hardcoded localhost from production CORS prevents
+// a deployed user's browser from being able to hit a rogue localhost service.
+const allowedOrigins = process.env.FRONTEND_URL
+  ? [process.env.FRONTEND_URL]
   : ['http://localhost:5173', 'http://localhost:3000'];
 
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, curl, Vercel internal calls)
-    // NOTE: NODE_ENV bypass removed — origin restriction is always enforced in production
     if (!origin || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    return callback(new Error('CORS Policy: Origin not allowed'), false);
+    // Return a plain false (not an Error) so cors() will NOT pass to Express error handler.
+    // We also attach a marker so we can send a clean 403 via the corsBlocker middleware below.
+    const err = new Error('CORS Policy: Origin not allowed');
+    err.status = 403;
+    return callback(err, false);
   },
   methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// CORS error handler — must come immediately after the cors() middleware.
+// Without this, Express' generic handler would return 500 for rejected origins.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  if (err.status === 403) {
+    return res.status(403).json({ error: 'CORS: Origin not allowed' });
+  }
+  next(err);
+});
+
 app.use(express.json({ limit: '1mb' }));
 
 // Health Check Endpoint (Required for Railway/Render/Vercel)
+// API-005: Do not expose internal timing (uptime) in the response.
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', uptime: process.uptime() });
+  res.status(200).json({ status: 'ok' });
 });
 
 // Rate limiter for OTP & public endpoints to prevent brute force & spam

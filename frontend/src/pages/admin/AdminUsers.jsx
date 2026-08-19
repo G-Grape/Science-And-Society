@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext'
 import { API_BASE, sendNotification } from '../../lib/api'
 
 // The main permanent admin email — used as a UI safety guard
-const PERMANENT_ADMIN_EMAIL = 'nirmala.scienceandsociety@gmail.com'
+const PERMANENT_ADMIN_EMAIL = import.meta.env.VITE_PERMANENT_ADMIN_EMAIL || 'nirmala.scienceandsociety@gmail.com'
 
 export default function AdminUsers() {
   const toast = useToast()
@@ -392,7 +392,7 @@ export default function AdminUsers() {
         onConfirm={handleConfirm}
         title={confirmTitle}
         message={confirmMessage}
-        confirmText={confirmData?.type === 'delete' ? 'Delete' : 'Suspend'}
+        confirmText={confirmData?.type === 'delete' ? 'Delete' : confirmData?.type === 'reject' ? 'Reject' : 'Suspend'}
         loading={confirmLoading}
         type="danger"
       />

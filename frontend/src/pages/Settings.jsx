@@ -35,7 +35,7 @@ export default function Settings() {
   // Get name fallback (handles admin users or delayed profile loads)
   const displayName = profile?.name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Unknown User'
 
-  const PERMANENT_ADMIN_EMAIL = 'nirmala.scienceandsociety@gmail.com'
+  const PERMANENT_ADMIN_EMAIL = import.meta.env.VITE_PERMANENT_ADMIN_EMAIL || 'nirmala.scienceandsociety@gmail.com'
   const isPermanentAdmin = user?.email === PERMANENT_ADMIN_EMAIL || profile?.is_permanent === true
 
   // ── Handlers: Email Change ────────────────────────────────────────
@@ -264,7 +264,7 @@ export default function Settings() {
                   <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={loading || otp.length !== 6}>
                     {loading ? 'Verifying…' : 'Confirm & Update Email'}
                   </button>
-                  <button type="button" className="btn btn-primary" style={{ width: '100%' }} onClick={() => setOtpStep(false)} disabled={loading}>
+                  <button type="button" className="btn btn-outline" style={{ width: '100%' }} onClick={() => setOtpStep(false)} disabled={loading}>
                     Back
                   </button>
                 </form>

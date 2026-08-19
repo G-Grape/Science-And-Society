@@ -538,7 +538,7 @@ export function StudentJournalDetail() {
               <p className="text-sm text-muted" style={{ marginBottom: '1rem' }}>
                 If you have questions about your submission, contact our editorial team.
               </p>
-              <a href="mailto:contact@gyansamavesh.edu" className="btn btn-outline w-full">
+              <a href="mailto:editorscisoc@nirmalacollege.ac.in" className="btn btn-outline w-full">
                 Contact Support
               </a>
             </div>

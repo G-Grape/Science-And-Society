@@ -49,7 +49,12 @@ const validateString = (str, maxLen = 200) => typeof str === 'string' && str.tri
 
 // Turnstile verification helper
 const verifyTurnstile = async (token) => {
-  if (!process.env.TURNSTILE_SECRET_KEY) return true;
+  if (!process.env.TURNSTILE_SECRET_KEY) {
+    // SEC-003: Fail closed — a missing secret key means CAPTCHA is misconfigured.
+    // Silently allowing requests here would disable CAPTCHA in production without operators knowing.
+    console.error('CRITICAL: TURNSTILE_SECRET_KEY is not set. Blocking CAPTCHA-protected request.');
+    return false;
+  }
   if (!token) return false;
   try {
     const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
@@ -86,6 +91,13 @@ const notifyAdminsInApp = async (title, message, link) => {
 exports.notifyUpload = async (req, res) => {
   const { studentName, journalTitle } = req.body;
   if (!validateString(journalTitle, 500)) return res.status(400).json({ error: 'Invalid journal title' });
+  
+  // SEC: Check if submissions are open before accepting notification
+  const { data: issue } = await supabase.from('current_issue').select('is_open').eq('id', 1).single();
+  if (!issue || !issue.is_open) {
+    return res.status(403).json({ error: 'Paper submissions are currently closed.' });
+  }
+
   const studentEmail = req.user?.email || (req.user?.id ? await getEmailForUser(req.user.id) : null);
 
   // 1. Notify Admin
@@ -102,7 +114,7 @@ exports.notifyUpload = async (req, res) => {
   if (req.user?.id) {
     await insertNotification(req.user.id, 'Paper Submitted', `Your paper "${journalTitle}" has been submitted for editorial review.`, '/student/journals');
   }
-  await notifyAdminsInApp('New Paper Submission', `A new paper "${journalTitle}" was submitted by ${studentName}.`, '/admin/assign');
+  await notifyAdminsInApp('New Paper Submission', `A new paper "${journalTitle}" was submitted by ${studentName}.`, '/admin/reviewers');
 
   res.status(200).json({ success: true, adminSent });
 };
@@ -193,7 +205,7 @@ exports.notifyResubmit = async (req, res) => {
   await notifyAdminsInApp(
     'Reworked Paper Resubmitted',
     `Author ${studentName || 'Author'} resubmitted the reworked paper "${journalTitle}". Please assign a reviewer.`,
-    '/admin/assign'
+    '/admin/reviewers'
   );
 
   res.status(200).json({ success: true, sent });
@@ -339,7 +351,7 @@ exports.notifyPaperDeleted = async (req, res) => {
 
 // ── Notify admin: new full-paper request ──────────────────────────────
 exports.notifyPaperRequest = async (req, res) => {
-  const { requesterName, requesterEmail, journalTitle, affiliation, reason, website_url, turnstileToken } = req.body;
+  const { requesterName, requesterEmail, journalTitle, journalId, affiliation, reason, website_url, turnstileToken } = req.body;
   
   // HONEYPOT: If the hidden website_url field is filled out, this is a spam bot.
   // Silently drop the request but return success so the bot doesn't retry.
@@ -348,7 +360,7 @@ exports.notifyPaperRequest = async (req, res) => {
     return res.status(200).json({ success: true, honeypot: true });
   }
 
-  // Verify CAPTCHA (Turnstile)
+  // Verify CAPTCHA (Turnstile) — SEC-002: CAPTCHA must gate the DB insert, not just the email
   const isHuman = await verifyTurnstile(turnstileToken);
   if (!isHuman) {
     return res.status(400).json({ error: 'CAPTCHA verification failed. Please try again.' });
@@ -360,6 +372,25 @@ exports.notifyPaperRequest = async (req, res) => {
   if (!validateString(journalTitle, 300)) return res.status(400).json({ error: 'Invalid journal title (max 300 chars)' });
   if (affiliation && typeof affiliation === 'string' && affiliation.length > 200) return res.status(400).json({ error: 'Affiliation too long (max 200 chars)' });
   if (reason && typeof reason === 'string' && reason.length > 1000) return res.status(400).json({ error: 'Reason too long (max 1000 chars)' });
+
+  // SEC-002: Insert the paper_requests row server-side AFTER CAPTCHA passes.
+  // The frontend no longer inserts directly into Supabase, so CAPTCHA now gates
+  // the database write — bots cannot create rows without passing Turnstile.
+  if (journalId) {
+    const { error: insertError } = await supabase.from('paper_requests').insert({
+      journal_id: journalId,
+      journal_title: journalTitle.trim(),
+      requester_name: requesterName.trim(),
+      requester_email: requesterEmail.trim(),
+      affiliation: affiliation?.trim() || null,
+      reason: reason?.trim() || null,
+      status: 'pending',
+    });
+    if (insertError) {
+      console.error('paper_requests insert error:', insertError);
+      return res.status(500).json({ error: 'Failed to save paper request. Please try again.' });
+    }
+  }
   
   const html = generatePaperRequestAdminNotification(
     esc(requesterName), esc(requesterEmail), esc(journalTitle), esc(affiliation), esc(reason)
@@ -375,6 +406,7 @@ exports.notifyPaperRequest = async (req, res) => {
   const sent = await sendMail(process.env.EMAIL_USER, 'New Full Paper Request', html);
   res.status(sent ? 200 : 500).json({ success: sent });
 };
+
 
 // ── Notify requester: paper request rejected ───────────────────────────
 exports.notifyPaperRequestRejected = async (req, res) => {

@@ -176,9 +176,9 @@ export default function UploadJournal() {
           <p className="page-subtitle">Submit your research paper for review</p>
         </div>
         <div className="card" style={{ padding: '3rem 1.5rem', textAlign: 'center', border: '1px solid rgba(239, 68, 68, 0.2)', background: 'rgba(254, 226, 226, 0.5)' }}>
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem', color: '#991b1b' }}>Access Denied</h2>
+          <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem', color: '#991b1b' }}>Submissions Closed</h2>
           <p style={{ color: '#7f1d1d', maxWidth: '400px', margin: '0 auto' }}>
-            Only authors are permitted to submit new manuscripts. Please log in with an author account to continue.
+            Paper submissions are currently closed. Please check back later.
           </p>
           <div style={{ marginTop: '2rem' }}>
             <button className="btn btn-outline" onClick={() => navigate('/student/dashboard')}>

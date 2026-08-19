@@ -45,11 +45,11 @@ export default function PendingApproval() {
             <div className="space-y-3">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--muted-foreground)' }}>
                 <Mail size={16} />
-                <a href="mailto:contact@gyansamavesh.edu" className="auth-link">contact@gyansamavesh.edu</a>
+                <a href="mailto:editorscisoc@nirmalacollege.ac.in" className="auth-link">editorscisoc@nirmalacollege.ac.in</a>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--muted-foreground)' }}>
                 <Phone size={16} />
-                <span>+91 123 456 7890</span>
+                <span>+91 4852 832361</span>
               </div>
             </div>
           </div>

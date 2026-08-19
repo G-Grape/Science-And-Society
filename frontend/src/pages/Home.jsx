@@ -352,7 +352,7 @@ function HeroSection() {
 
   const currentLink = currentVol && currentIss ? `/published-papers?vol=${currentVol}&iss=${currentIss}` : '/published-papers'
   const prevLink = prevVol && prevIss ? `/published-papers?vol=${prevVol}&iss=${prevIss}` : '/published-papers'
-  const futureLink = '/published-papers'
+  const futureLink = '/future-issues'
 
   return (
     <section id="hero" className="hero" style={{
@@ -778,7 +778,7 @@ function ContactSection() {
             <AnimatedSection delay={0.2} direction="right">
               <StaggerContainer className="contact-info-cards">
                 {[
-                  { title: 'Email', lines: ['editorscisoc@nirmalacollege.ac.in', 'support@gyansamavesh.edu'] },
+                  { title: 'Email', lines: ['editorscisoc@nirmalacollege.ac.in'] },
                   { title: 'Phone', lines: ['+91 4852832361 ', 'Mon–Fri, 9:00 AM – 5:00 PM IST'] },
                   { title: 'Address', lines: ['Nirmala College', 'Muvattupuzha(Autonomous), Kerala, India'] },
                 ].map(({ title, lines }) => (

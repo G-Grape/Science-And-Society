@@ -138,7 +138,7 @@ exports.resubmitJournal = async (req, res) => {
     await notifyAdminsInApp(
       'Reworked Paper Resubmitted',
       `Author ${studentName || 'Author'} resubmitted the reworked paper "${title}". Please assign a reviewer.`,
-      '/admin/assign'
+      '/admin/reviewers'
     );
 
     res.status(200).json({ success: true });

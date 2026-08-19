@@ -8,6 +8,7 @@ export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [profileError, setProfileError] = useState(false)
 
   useEffect(() => {
     // Get the current session on mount
@@ -27,6 +28,7 @@ export function AuthProvider({ children }) {
         fetchProfile(session.user.id)
       } else {
         setProfile(null)
+        setProfileError(false)
         setLoading(false)
       }
     })
@@ -41,19 +43,29 @@ export function AuthProvider({ children }) {
       .eq('id', userId)
       .single()
 
-    if (data?.deletion_scheduled_at) {
-      try {
-        // Auto-cancel deletion because the user logged back in within the grace period
-        await sendNotification('/api/auth/cancel-deletion', {});
-        data.deletion_scheduled_at = null;
-        // Store a flag — the app will display a welcome-back message on load
-        localStorage.setItem('account_restored', '1');
-      } catch (err) {
-        console.error('Failed to auto-cancel deletion:', err);
+    if (!data) {
+      // SEC-021: Track if profile load failed (e.g. DB down, row missing)
+      setProfileError(true)
+    } else {
+      setProfileError(false)
+      if (data?.deletion_scheduled_at) {
+        try {
+          // Auto-cancel deletion because the user logged back in within the grace period
+          const res = await sendNotification('/api/auth/cancel-deletion', {});
+          if (!res || !res.ok) {
+            console.error('Failed to auto-cancel deletion: session expired or server error', res?.status);
+          } else {
+            data.deletion_scheduled_at = null;
+            // Store a flag — the app will display a welcome-back message on load
+            localStorage.setItem('account_restored', '1');
+          }
+        } catch (err) {
+          console.error('Failed to auto-cancel deletion exception:', err);
+        }
       }
+      setProfile(data)
     }
-
-    setProfile(data)
+    
     setLoading(false)
   }
 
@@ -94,7 +106,7 @@ export function AuthProvider({ children }) {
     setProfile(null)
   }
 
-  const value = { user, profile, loading, signIn, requestRegisterOTP, verifyRegisterOTP, signOut }
+  const value = { user, profile, loading, profileError, signIn, requestRegisterOTP, verifyRegisterOTP, signOut }
 
   return (
     <AuthContext.Provider value={value}>

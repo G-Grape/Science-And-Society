@@ -36,10 +36,9 @@ export default function PaperDetail() {
   useEffect(() => {
     async function fetchPaper() {
       const { data, error } = await supabase
-        .from('journals')
+        .from('published_issues')
         .select('id, title, abstract, keywords, authors, author_name, volume_number, issue_number, published_at, created_at')
         .eq('id', id)
-        .eq('status', 'published')
         .single()
 
       if (error || !data) {
@@ -86,21 +85,10 @@ export default function PaperDetail() {
     }
     setSubmitting(true)
     try {
-      // Insert into paper_requests
-      const { error } = await supabase.from('paper_requests').insert({
-        journal_id: paper.id,
-        journal_title: paper.title,
-        requester_name: form.name.trim(),
-        requester_email: form.email.trim(),
-        affiliation: form.affiliation.trim() || null,
-        reason: form.reason.trim() || null,
-        status: 'pending',
-      })
-      if (error) throw error
-
-      // Notify admin
+      // SEC-002: paper_requests insert is now handled securely in the backend AFTER CAPTCHA validation.
       let emailFailed = false;
       const res = await sendNotification('/api/notify/paper-request', {
+        journalId: paper.id, // Passed to backend for insert
         requesterName: form.name.trim(),
         requesterEmail: form.email.trim(),
         journalTitle: paper.title,
@@ -324,7 +312,7 @@ export default function PaperDetail() {
                   <button type="submit" className="btn btn-primary" disabled={submitting}>
                     {submitting ? <><div className="spinner-sm" /> Submitting…</> : 'Submit Request'}
                   </button>
-                  <button type="button" className="btn btn-primary" onClick={() => setShowForm(false)}>Cancel</button>
+                  <button type="button" className="btn btn-outline" onClick={() => setShowForm(false)}>Cancel</button>
                 </div>
               </form>
             )}

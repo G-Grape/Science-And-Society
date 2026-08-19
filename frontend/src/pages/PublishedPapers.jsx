@@ -473,9 +473,8 @@ export default function PublishedPapers() {
     const isSearch = debouncedGlobalSearch.trim().length > 1
 
     let query = supabase
-      .from('journals')
+      .from('published_issues')
       .select('id, title, abstract, keywords, authors, author_name, volume_number, issue_number, published_at, created_at')
-      .eq('status', 'published')
       .order('published_at', { ascending: false, nullsFirst: false })
 
     // Server-side global search

@@ -100,9 +100,8 @@ export default function FutureIssues() {
   async function fetchPapers() {
     setLoading(true)
     const { data, error } = await supabase
-      .from('journals')
+      .from('published_issues')
       .select('id, title, abstract, keywords, authors, author_name, volume_number, issue_number, published_at, created_at')
-      .eq('status', 'published')
       .is('volume_number', null)
       .order('published_at', { ascending: false })
       
