@@ -17,7 +17,7 @@ export default function ReviewerDashboard() {
     // Fetch assignments for this reviewer with journal info
     const { data: assignments } = await supabase
       .from('assignments')
-      .select(`journals ( id, title, review_level, created_at, profiles(name) )`)
+      .select(`journals ( id, title, review_level, created_at )`)
       .eq('reviewer_id', user.id)
 
     const journals = (assignments ?? []).map(a => a.journals).filter(Boolean)

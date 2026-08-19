@@ -22,7 +22,7 @@ export function StudentJournals() {
     setLoading(true)
     const { data } = await supabase
       .from('journals')
-      .select('id, title, status, created_at, assignments(id)')
+      .select('id, title, status, created_at')
       .eq('student_id', user.id)
       .order('created_at', { ascending: false })
       .limit(100)
@@ -95,7 +95,7 @@ export function StudentJournals() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <span className={`status-${j.status}`}>{statusLabels[j.status] || 'Pending'}</span>
 
-                    {j.status === 'submitted' && (!j.assignments || j.assignments.length === 0) && (
+                    {j.status === 'submitted' && (
                       <button 
                         className="btn btn-outline btn-sm" 
                         style={{ color: '#ef4444', borderColor: '#ef4444' }}
