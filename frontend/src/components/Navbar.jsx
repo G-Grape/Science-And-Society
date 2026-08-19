@@ -158,12 +158,12 @@ export function Navbar() {
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                   <Link 
                     to="/notifications" 
-                    className="btn btn-sidebar btn-sm relative"
-                    style={{ padding: '0.4rem 0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    className="btn btn-sidebar btn-sm"
+                    style={{ position: 'relative', padding: '0.4rem 0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     <Bell size={18} />
                     {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">
+                      <span style={{ position: 'absolute', top: '-4px', right: '-4px', backgroundColor: '#ef4444', color: 'white', fontSize: '10px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '9999px', minWidth: '18px', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
                         {unreadCount > 99 ? '99+' : unreadCount}
                       </span>
                     )}
@@ -199,9 +199,23 @@ export function Navbar() {
                 </Link>
               )}
               {!loading && user && (
-                <Link to={dashboardPath} className="btn btn-sidebar-solid btn-sm" style={{ padding: '0.4rem 0.75rem' }}>
-                  Dashboard
-                </Link>
+                <>
+                  <Link 
+                    to="/notifications" 
+                    className="btn btn-sidebar btn-sm"
+                    style={{ position: 'relative', padding: '0.4rem 0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <Bell size={18} />
+                    {unreadCount > 0 && (
+                      <span style={{ position: 'absolute', top: '-4px', right: '-4px', backgroundColor: '#ef4444', color: 'white', fontSize: '10px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '9999px', minWidth: '18px', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                  </Link>
+                  <Link to={dashboardPath} className="btn btn-sidebar-solid btn-sm" style={{ padding: '0.4rem 0.75rem' }}>
+                    Dashboard
+                  </Link>
+                </>
               )}
               <button
                 className="btn btn-primary btn-icon"
