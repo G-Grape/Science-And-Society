@@ -276,9 +276,8 @@ function useIssueData() {
     async function fetchAll() {
       // Try fetching current issue papers (is_future_issue = false or null)
       let { data: currentData, error: currentError } = await supabase
-        .from('journals')
+        .from('published_issues')
         .select('id, title, abstract, published_at, created_at, author_name, authors, volume_number, issue_number')
-        .eq('status', 'published')
         .not('volume_number', 'is', null)
         .order('published_at', { ascending: false, nullsFirst: false })
         .limit(20)
@@ -287,9 +286,8 @@ function useIssueData() {
       let futureData = []
       if (!currentError) {
         const { data: fd } = await supabase
-          .from('journals')
+          .from('published_issues')
           .select('id, title, abstract, published_at, created_at, author_name, authors, volume_number, issue_number')
-          .eq('status', 'published')
           .is('volume_number', null)
           .order('published_at', { ascending: false, nullsFirst: false })
           .limit(40)
