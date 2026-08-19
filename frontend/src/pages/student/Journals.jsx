@@ -170,14 +170,9 @@ export function StudentJournalDetail() {
     let newFileUrl = null;
 
     try {
-      // ── 0. Fetch current assigned reviewer's name before wiping ─────────
-      const { data: assignmentData } = await supabase
-        .from('assignments')
-        .select('profiles(name)')
-        .eq('journal_id', id)
-        .maybeSingle()
-
-      const prevReviewerName = assignmentData?.profiles?.name || reviews[0]?.profiles?.name || null
+      // The backend securely fetches the previous reviewer name from the DB.
+      // We don't need to fetch it from assignments here (students also lack RLS access to assignments).
+      const prevReviewerName = reviews.length > 0 ? reviews[reviews.length - 1]?.profiles?.name : null
 
       // ── 1. Upload the new manuscript file ──────────────────────────────
       // RLS Policy requires students to upload strictly to their own UID folder
