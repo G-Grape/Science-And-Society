@@ -29,7 +29,7 @@ export function Scroll3DWrapper({ children, direction = 'up' }) {
         whileInView={{ opacity: 1, y: 0, x: 0, rotateX: 0, rotateY: 0, scale: 1 }}
         viewport={{ once: true, margin: isMobile ? '0px' : '-5%' }}
         transition={{ duration: isMobile ? 0.6 : 0.8, type: 'spring', bounce: 0.1 }}
-        style={{ transformOrigin: 'center center' }}
+        style={{ transformOrigin: 'center center', willChange: 'transform, opacity' }}
       >
         {children}
       </motion.div>

@@ -174,8 +174,9 @@ export default function AdminJournals() {
 
       <div className="card">
         <div className="card-content p-0">
-          <table className="table">
-            <thead>
+          <div className="table-wrapper">
+            <table className="table">
+              <thead>
               <tr>
                 <th>Paper Title</th>
                 <th>Author</th>
@@ -263,6 +264,7 @@ export default function AdminJournals() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
         <div className="card-footer" style={{ paddingTop: '0.75rem', fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
           Showing {filtered.length} of {journals.length} journals

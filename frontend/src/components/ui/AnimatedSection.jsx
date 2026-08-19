@@ -35,7 +35,7 @@ export function AnimatedSection({ children, direction = 'up', delay = 0, classNa
   return (
     <motion.div
       className={className}
-      style={style}
+      style={{ willChange: 'transform, opacity', ...style }}
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, margin: isMobile ? '0px' : '-20px' }}
@@ -70,7 +70,7 @@ export function StaggerContainer({ children, className = '', style = {}, ...prop
   return (
     <motion.div
       className={className}
-      style={style}
+      style={{ willChange: 'opacity', ...style }}
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, margin: isMobile ? '0px' : '-10px' }}
@@ -99,7 +99,7 @@ export function StaggerItem({ children, className = '', style = {}, ...props }) 
   return (
     <motion.div
       className={className}
-      style={style}
+      style={{ willChange: 'transform, opacity', ...style }}
       variants={itemVariants}
       {...props}
     >
