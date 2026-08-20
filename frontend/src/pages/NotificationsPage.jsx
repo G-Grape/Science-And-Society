@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Bell, X, CheckCircle, MessageSquare, Trash2, Send, Mail, User, Tag, Calendar, Filter } from 'lucide-react'
+import { Bell, X, CheckCircle, MessageSquare, Trash2, Send, Mail, User, Tag, Filter } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { sendNotification } from '../lib/api'
@@ -70,6 +70,7 @@ export default function NotificationsPage() {
     return () => {
       supabase.removeChannel(channel)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, startDate, endDate])
 
   const markAsRead = async (id) => {
@@ -134,6 +135,7 @@ export default function NotificationsPage() {
       setReplyText('')
       
     } catch (err) {
+      console.error(err)
       toast.error('Failed to send reply')
     }
     setSendingReply(false)

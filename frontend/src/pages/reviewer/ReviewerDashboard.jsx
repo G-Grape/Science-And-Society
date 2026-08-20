@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ClipboardList, CheckCircle, Clock, FileText, ArrowRight, User } from 'lucide-react'
+import { ClipboardList, CheckCircle, Clock, User } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 
@@ -9,15 +9,16 @@ export default function ReviewerDashboard() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (user) fetchAssigned() }, [user])
 
   async function fetchAssigned() {
     setLoading(true)
 
-    // Fetch assignments for this reviewer with journal info
+    // Fetch assignments for this reviewer with journal info (including author name)
     const { data: assignments } = await supabase
       .from('assignments')
-      .select(`journals ( id, title, review_level, created_at )`)
+      .select(`journals ( id, title, review_level, created_at, profiles ( name ) )`)
       .eq('reviewer_id', user.id)
 
     const journals = (assignments ?? []).map(a => a.journals).filter(Boolean)

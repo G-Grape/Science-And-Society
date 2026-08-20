@@ -13,6 +13,31 @@ const { requireAuth, requireAdmin } = require('./middleware/requireAuth');
 const { createClient } = require('@supabase/supabase-js');
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
+// ── Shared Storage Helpers ──────────────────────────────────────────
+// Extract a bare storage path from either a full Supabase URL or an already-bare path.
+// Returns null if the URL is falsy or does not contain a recognisable /journals/ segment.
+function extractStoragePath(url) {
+  if (!url) return null;
+  // New records store a bare path (e.g. uuid/timestamp_file.pdf)
+  if (!url.startsWith('http')) return url.split('?')[0];
+  // Legacy records stored full Supabase URLs — strip down to just the path
+  try {
+    const parts = url.split('/journals/');
+    if (parts.length > 1) return parts[1].split('?')[0];
+    return null;
+  } catch { return null; }
+}
+
+// Remove an array of storage paths from the 'journals' bucket.
+// Logs but does NOT throw on storage failure — a missing file is an orphan,
+// not a reason to surface a 500 to the caller when the DB record is already gone.
+async function removeStorageFiles(paths) {
+  if (!paths || paths.length === 0) return;
+  const { error } = await supabase.storage.from('journals').remove(paths);
+  if (error) console.error('Storage Deletion Error (Orphaned File):', error);
+}
+
+
 const app = express();
 
 // Secure HTTP Headers with explicit Content Security Policy (U-7 fix)
@@ -166,22 +191,10 @@ app.post('/api/admin/journals/:id/delete', requireAuth, requireAdmin, async (req
     }
 
     // 2. Extract and validate storage paths — only storage paths, never plain-text fields
-    const extractPath = (url) => {
-      if (!url) return null;
-      // New records store a bare path (e.g. uuid/timestamp_file.pdf)
-      if (!url.startsWith('http')) return url.split('?')[0];
-      // Legacy records stored full Supabase URLs — strip down to just the path
-      try {
-        const parts = url.split('/journals/');
-        if (parts.length > 1) return parts[1].split('?')[0];
-        return null;
-      } catch (e) { return null; }
-    };
-
     const filesToRemove = [
-      extractPath(journal.file_url),
-      extractPath(journal.revision_report_url),
-      extractPath(journal.approval_proof_url),
+      extractStoragePath(journal.file_url),
+      extractStoragePath(journal.revision_report_url),
+      extractStoragePath(journal.approval_proof_url),
     ].filter(Boolean);
 
     // 3. Delete the Database Record (Service Role bypasses RLS)
@@ -191,12 +204,7 @@ app.post('/api/admin/journals/:id/delete', requireAuth, requireAdmin, async (req
     const { error: dbError } = await supabase.from('journals').delete().eq('id', journalId);
     if (dbError) throw dbError;
 
-    if (filesToRemove.length > 0) {
-      const { error: storageError } = await supabase.storage.from('journals').remove(filesToRemove);
-      if (storageError) {
-        console.error('Storage Deletion Error (Orphaned File):', storageError);
-      }
-    }
+    await removeStorageFiles(filesToRemove);
 
     res.status(200).json({ success: true });
   } catch (err) {
@@ -234,18 +242,8 @@ app.post('/api/student/journals/:id/delete', requireAuth, async (req, res) => {
     // Students may ONLY delete files inside their own UID folder.
     // This prevents the service-role from being weaponised against other users' files
     // even if file_url were somehow forged in the DB prior to the trigger fix.
-    const extractPath = (url) => {
-      if (!url) return null;
-      if (!url.startsWith('http')) return url.split('?')[0];
-      try {
-        const parts = url.split('/journals/');
-        if (parts.length > 1) return parts[1].split('?')[0];
-        return null;
-      } catch (e) { return null; }
-    };
-
+    const filePath = extractStoragePath(journal.file_url);
     const filesToRemove = [];
-    const filePath = extractPath(journal.file_url);
 
     // SECURITY: Only delete if the path provably belongs to this user.
     // If the path doesn't start with the user's UID, refuse and log — do NOT delete.
@@ -262,12 +260,7 @@ app.post('/api/student/journals/:id/delete', requireAuth, async (req, res) => {
     const { error: dbError } = await supabase.from('journals').delete().eq('id', journalId);
     if (dbError) throw dbError;
 
-    if (filesToRemove.length > 0) {
-      const { error: storageError } = await supabase.storage.from('journals').remove(filesToRemove);
-      if (storageError) {
-        console.error('Storage Deletion Error (Orphaned File):', storageError);
-      }
-    }
+    await removeStorageFiles(filesToRemove);
 
     res.status(200).json({ success: true });
   } catch (err) {

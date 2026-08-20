@@ -1,11 +1,9 @@
-import { useState, useCallback, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Upload, FileText, X, CheckCircle, Plus, Trash2, User } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { X, CheckCircle, Plus, User } from 'lucide-react'
 import { useToast } from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 
 export default function PublishLegacy() {
-  const navigate = useNavigate()
   const toast = useToast()
 
   const [submitting, setSubmitting] = useState(false)

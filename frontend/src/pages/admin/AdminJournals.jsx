@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Eye, RefreshCw, CheckCircle, XCircle, Clock, Send, Trash2 } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { useToast } from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 import { sendNotification } from '../../lib/api'
@@ -21,7 +21,9 @@ export default function AdminJournals() {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchJournals is stable and intentionally mount-only
   useEffect(() => { fetchJournals() }, [])
+
 
   async function fetchJournals() {
     setLoading(true)
@@ -189,7 +191,7 @@ export default function AdminJournals() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted-foreground)' }}>Loading journals…</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted-foreground)' }}>Loading journals…</td></tr>
               ) : filtered.map(j => {
                 const isUnassigned = j.reviewerName === '—'
                 return (
@@ -260,7 +262,7 @@ export default function AdminJournals() {
                 )
               })}
               {!loading && filtered.length === 0 && (
-                <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--muted-foreground)', padding: '3rem 1rem', fontStyle: 'italic', fontSize: '0.9rem' }}>No journals found matching your criteria.</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--muted-foreground)', padding: '3rem 1rem', fontStyle: 'italic', fontSize: '0.9rem' }}>No journals found matching your criteria.</td></tr>
               )}
             </tbody>
           </table>

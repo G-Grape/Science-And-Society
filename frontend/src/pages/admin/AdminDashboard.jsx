@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FileText, Users, CheckCircle, Clock, ArrowRight, TrendingUp, Mail, Check, Newspaper } from 'lucide-react'
+import { FileText, Users, Clock, TrendingUp, CheckCircle } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
 const statusLabels = { submitted: 'Submitted', under_review: 'Under Review', approved: 'Approved', rejected: 'Rejected', revision_required: 'Revision Required', published: 'Published' }
@@ -13,6 +13,7 @@ export default function AdminDashboard() {
   const [loading, setLoading]         = useState(true)
 
   useEffect(() => { fetchAll() }, [])
+
 
   async function fetchAll() {
     setLoading(true)

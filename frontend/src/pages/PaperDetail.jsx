@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Calendar, Tag, Users, Key, FileText, Send, CheckCircle, AlertCircle } from 'lucide-react'
+import { Calendar, Users, FileText, AlertCircle } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { sendNotification } from '../lib/api'
 import { AnimatedSection } from '../components/ui/AnimatedSection'
@@ -104,6 +104,7 @@ export default function PaperDetail() {
         toast.error('Request submitted, but failed to notify admins via email. They can still see it in the dashboard.', { duration: 5000 })
       }
     } catch (err) {
+      console.error(err)
       toast.error('Failed to submit request. Please try again.')
     }
     setSubmitting(false)
@@ -126,7 +127,7 @@ export default function PaperDetail() {
     </div>
   )
 
-  const { allNames, correspondingAuthor, otherAuthors } = getAuthorsData(paper)
+  const { correspondingAuthor, otherAuthors } = getAuthorsData(paper)
   const publishDate = paper.published_at || paper.created_at
 
   return (

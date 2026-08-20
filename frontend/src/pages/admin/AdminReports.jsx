@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { FileText, ArrowRight, ArrowLeft, User, Download, ClipboardList, Clock, Search, CheckCircle, RotateCcw, XCircle, MessageSquare } from 'lucide-react'
+import { FileText, ArrowLeft, User, Download, Clock, Search, CheckCircle, RotateCcw, XCircle, MessageSquare } from 'lucide-react'
 import { useToast } from '../../components/Toast'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
-import { API_BASE, sendNotification } from '../../lib/api'
+import { sendNotification } from '../../lib/api'
 
 /* ── Review Reports List (List View) ──────────────────────────────── */
 export default function AdminReports() {
@@ -14,6 +14,7 @@ export default function AdminReports() {
   const [filter, setFilter] = useState('all')
 
   useEffect(() => { fetchJournals() }, [])
+
 
   async function fetchJournals() {
     setLoading(true)
@@ -167,7 +168,9 @@ export function ReviewReportDetail() {
   const [approvalFile, setApprovalFile] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchDetail is stable; id is the only meaningful dep and is already included
   useEffect(() => { fetchDetail() }, [id])
+
 
   async function fetchDetail() {
     setLoading(true)

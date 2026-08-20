@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Search, BookOpen, Calendar, Tag, Users, ChevronRight, ArrowLeft, X, Layers, FileText } from 'lucide-react'
+import { BookOpen, Calendar, Users, ChevronRight, X, FileText } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { AnimatedSection, StaggerContainer, StaggerItem } from '../components/ui/AnimatedSection'
+import { AnimatedSection } from '../components/ui/AnimatedSection'
 
 /* ─────────────────────────────────────────────────────────────────────
    Helpers
@@ -464,6 +464,7 @@ export default function PublishedPapers() {
   // Fetch papers when page or search changes
   useEffect(() => {
     fetchPapers(page, page > 0)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, debouncedGlobalSearch])
 
   async function fetchPapers(pageIndex = 0, append = false) {

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Search, UserCheck, UserPlus, RefreshCw, FileText, Download, ChevronDown, ChevronUp } from 'lucide-react'
+import { Search, ChevronDown, ChevronUp } from 'lucide-react'
 import { useToast } from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 import ConfirmModal from '../../components/ConfirmModal'
-import { API_BASE, sendNotification } from '../../lib/api'
+import { sendNotification } from '../../lib/api'
 
 export default function AssignReviewers() {
   const toast = useToast()
@@ -19,7 +19,9 @@ export default function AssignReviewers() {
   const [confirmData, setConfirmData] = useState(null)
   const [confirmLoading, setConfirmLoading] = useState(false)
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchAll is stable and intentionally mount-only
   useEffect(() => { fetchAll() }, [])
+
 
   async function fetchAll() {
     setLoading(true)

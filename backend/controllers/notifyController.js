@@ -34,7 +34,8 @@ const getEmailForUser = async (userId) => {
   return profile?.email || null;
 };
 
-const esc = (str) => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const esc = (str) => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
 
 const checkAdmin = async (userId) => {
   if (!userId) return false;
@@ -224,10 +225,17 @@ exports.notifyDecision = async (req, res) => {
 
 exports.notifyBan = async (req, res) => {
   if (!await checkAdmin(req.user?.id)) return res.status(403).json({ error: 'Forbidden' });
-  const { userEmail, userName, reason } = req.body;
-  if (!userEmail) return res.status(400).json({ error: 'User email required' });
+  const { userId, userName, reason } = req.body;
+  if (!userId) return res.status(400).json({ error: 'User ID required' });
+
+  // Security: Resolve email server-side — never trust caller-supplied email.
+  // This matches the notifyAccountDeleted pattern and prevents a compromised
+  // admin session from redirecting ban notifications to arbitrary addresses.
+  const resolvedEmail = await getEmailForUser(userId);
+  if (!resolvedEmail) return res.status(404).json({ error: 'Could not resolve user email' });
+
   const html = generateBanNotification(esc(userName), esc(reason));
-  const sent = await sendMail(userEmail, 'Your Account Has Been Suspended', html);
+  const sent = await sendMail(resolvedEmail, 'Your Account Has Been Suspended', html);
   // Also notify main admin
   await sendMail(process.env.EMAIL_USER, `User Suspended: ${esc(userName)}`, html);
   res.status(sent ? 200 : 500).json({ success: sent });
@@ -235,10 +243,15 @@ exports.notifyBan = async (req, res) => {
 
 exports.notifyUnban = async (req, res) => {
   if (!await checkAdmin(req.user?.id)) return res.status(403).json({ error: 'Forbidden' });
-  const { userEmail, userName } = req.body;
-  if (!userEmail) return res.status(400).json({ error: 'User email required' });
+  const { userId, userName } = req.body;
+  if (!userId) return res.status(400).json({ error: 'User ID required' });
+
+  // Security: Resolve email server-side — same rationale as notifyBan above.
+  const resolvedEmail = await getEmailForUser(userId);
+  if (!resolvedEmail) return res.status(404).json({ error: 'Could not resolve user email' });
+
   const html = generateUnbanNotification(esc(userName));
-  const sent = await sendMail(userEmail, 'Your Account Has Been Reinstated', html);
+  const sent = await sendMail(resolvedEmail, 'Your Account Has Been Reinstated', html);
   res.status(sent ? 200 : 500).json({ success: sent });
 };
 

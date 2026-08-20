@@ -13,7 +13,8 @@ const notifyAdminsInApp = async (title, message, link) => {
   }
 };
 
-const esc = (str) => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const esc = (str) => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
 
 /**
  * POST /api/student/resubmit

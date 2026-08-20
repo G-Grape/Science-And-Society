@@ -4,7 +4,7 @@ import { useToast } from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 import ConfirmModal from '../../components/ConfirmModal'
 import { useAuth } from '../../context/AuthContext'
-import { API_BASE, sendNotification } from '../../lib/api'
+import { sendNotification } from '../../lib/api'
 
 // The main permanent admin email — used as a UI safety guard
 const PERMANENT_ADMIN_EMAIL = import.meta.env.VITE_PERMANENT_ADMIN_EMAIL || 'nirmala.scienceandsociety@gmail.com'
@@ -27,7 +27,9 @@ export default function AdminUsers() {
   const isPermanentAdmin = currentUserProfile?.is_permanent === true ||
                            currentUserProfile?.email === PERMANENT_ADMIN_EMAIL
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchUsers is stable and intentionally mount-only
   useEffect(() => { fetchUsers() }, [])
+
 
   async function fetchUsers() {
     setLoading(true)
@@ -88,7 +90,7 @@ export default function AdminUsers() {
     } else {
       // Send email notification securely
       let emailFailed = false;
-      const res = await sendNotification('/api/notify/ban', { userEmail: user.email, userName: user.name, reason: '' });
+      const res = await sendNotification('/api/notify/ban', { userId: user.id, userName: user.name, reason: '' });
       if (!res || !res.ok) emailFailed = true;
 
       if (emailFailed) {
@@ -110,7 +112,7 @@ export default function AdminUsers() {
     } else {
       // Send email notification securely
       let emailFailed = false;
-      const res = await sendNotification('/api/notify/unban', { userEmail: user.email, userName: user.name });
+      const res = await sendNotification('/api/notify/unban', { userId: user.id, userName: user.name });
       if (!res || !res.ok) emailFailed = true;
 
       if (emailFailed) {

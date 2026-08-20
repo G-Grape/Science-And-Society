@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { FileText, ArrowRight, ArrowLeft, User, Download, CheckCircle, Upload } from 'lucide-react'
+import { FileText, ArrowLeft, User, Download, CheckCircle, Upload } from 'lucide-react'
 import { useToast } from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
-import { API_BASE, sendNotification } from '../../lib/api'
+import { sendNotification } from '../../lib/api'
 
 // Only reviewer-safe statuses — admin decisions are protected/private
 const statusLabels = {
@@ -23,6 +23,7 @@ export function AssignedJournals() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (user) fetchAssigned() }, [user])
 
   async function fetchAssigned() {
@@ -150,6 +151,7 @@ export function ReviewJournal() {
   const [submitting, setSubmitting] = useState(false)
   const [existing, setExisting] = useState(null)
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchJournal() }, [id])
 
   async function fetchJournal() {

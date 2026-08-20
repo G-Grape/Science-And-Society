@@ -59,10 +59,10 @@ export function Footer() {
           <div>
             <div className="footer-col-title">Guidelines</div>
             <div className="footer-links">
-              <a href="#" className="footer-link">Submission Guidelines</a>
-              <a href="#" className="footer-link">Review Process</a>
-              <a href="#" className="footer-link">Publication Ethics</a>
-              <a href="#" className="footer-link">FAQs</a>
+              <Link to="/student/guidelines" className="footer-link">Submission Guidelines</Link>
+              <Link to="/student/guidelines" className="footer-link">Review Process</Link>
+              <Link to="/#about" className="footer-link">Publication Ethics</Link>
+              <Link to="/#about" className="footer-link">FAQs</Link>
             </div>
           </div>
 

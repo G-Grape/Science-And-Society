@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Eye, EyeOff, AlertTriangle, CheckCircle2, Circle } from 'lucide-react'
+import { X, Eye, EyeOff, CheckCircle2, Circle } from 'lucide-react'
 import { useToast } from '../components/Toast'
 import { useAuth } from '../context/AuthContext'
 import { sendNotification } from '../lib/api'

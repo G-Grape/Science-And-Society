@@ -186,7 +186,7 @@ export default function EditorialBoard() {
                 gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
                 gap: '1.25rem',
               }}>
-                {section.members.map((member, mi) => (
+                {section.members.map((member) => (
                   <StaggerItem key={member.name}>
                     <motion.div
                       whileHover={{ y: -3, boxShadow: '0 8px 30px rgba(0,0,0,0.1)' }}

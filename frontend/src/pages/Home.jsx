@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { FileText, LogIn, ArrowRight, Shield, Users, Clock, Award, Upload, Search, CheckCircle, BookOpen, Mail, Phone, MapPin, Send, Calendar, Globe, Type, Edit, FileCheck, ChevronRight, ChevronDown, Tag, Layers } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Users, ChevronRight, ChevronDown } from 'lucide-react'
 import { Turnstile } from '@marsidev/react-turnstile'
 import { useToast } from '../components/Toast'
 import { useAuth } from '../context/AuthContext'
@@ -42,11 +42,7 @@ function getCorrespondingAuthorName(p) {
   return p.author_name || 'Unknown Author'
 }
 
-function pickRandom(arr, count) {
-  if (arr.length <= count) return arr
-  const shuffled = [...arr].sort(() => Math.random() - 0.5)
-  return shuffled.slice(0, count)
-}
+
 
 /* ─────────────────────────────────────────────────────────────────────
    CURRENT ISSUE BOX — compact, 1 paper at a time, blue palette

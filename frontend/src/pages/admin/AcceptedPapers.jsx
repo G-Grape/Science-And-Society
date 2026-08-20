@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BookOpen, CheckCircle, RefreshCw, Send, X, Calendar, Tag, Users } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useToast } from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 import { sendNotification } from '../../lib/api'
@@ -12,6 +12,7 @@ export default function AcceptedPapers() {
   const [publishing, setPublishing] = useState(false)
   const [form, setForm] = useState({ abstract: '', keywords: '', authors_text: '' })
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchPapers() }, [])
 
   async function fetchPapers() {

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Upload, FileText, X, CheckCircle, AlertCircle, Plus, Trash2, User, Minus } from 'lucide-react'
+import { Upload, FileText, X, Plus, User } from 'lucide-react'
 import { useToast } from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
@@ -21,7 +21,6 @@ export default function UploadJournal() {
 
   const [isActuallyOpen, setIsActuallyOpen] = useState(true)
   const [checkingStatus, setCheckingStatus] = useState(true)
-  const [topics, setTopics] = useState([])
 
   // Load drafted data from local storage
   useEffect(() => {
@@ -50,7 +49,7 @@ export default function UploadJournal() {
   useEffect(() => {
     async function loadData() {
       // Check issue status
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('current_issue')
         .select('is_open')
         .single()

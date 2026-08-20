@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Mail, Check, X, RefreshCw, Inbox, ChevronDown, ChevronUp, Send } from 'lucide-react'
+import { Mail, Check, X, RefreshCw, ChevronDown, ChevronUp, Send } from 'lucide-react'
 import { useToast } from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 import { sendNotification } from '../../lib/api'
@@ -18,7 +18,9 @@ export default function PaperRequests() {
   const [expanded, setExpanded] = useState(null)
   const [actioning, setActioning] = useState(null)
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchRequests is stable and intentionally mount-only
   useEffect(() => { fetchRequests() }, [])
+
 
   async function fetchRequests() {
     setLoading(true)
@@ -78,6 +80,7 @@ export default function PaperRequests() {
       if (!res || !res.ok) throw new Error('Failed to send PDF via email.');
       toast.success('PDF successfully attached and sent via email!')
     } catch (err) {
+      console.error('Failed to send PDF email:', err)
       toast.error('Failed to send PDF email.')
     }
     setActioning(null)

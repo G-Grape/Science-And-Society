@@ -137,6 +137,7 @@ function DashboardLayout({ role, children }) {
         toast.success('Welcome back! Your account has been fully restored. All your history and data remain intact.', { duration: 6000 })
       }, 800)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (

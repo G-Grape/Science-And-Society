@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FileText, Clock, CheckCircle, XCircle, Upload, ArrowRight } from 'lucide-react'
+import { FileText, Clock, CheckCircle, XCircle } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 
@@ -13,6 +13,7 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     if (user) fetchJournals()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
   async function fetchJournals() {

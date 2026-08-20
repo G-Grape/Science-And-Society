@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Layers, CheckCircle, Clock } from 'lucide-react'
+import { Layers } from 'lucide-react'
 import { useToast } from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 
 export default function AdminCompileIssue() {
-  const navigate = useNavigate()
   const toast = useToast()
 
   const [papers, setPapers] = useState([])
@@ -20,7 +18,9 @@ export default function AdminCompileIssue() {
 
   useEffect(() => {
     fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
 
   async function fetchData() {
     setLoading(true)

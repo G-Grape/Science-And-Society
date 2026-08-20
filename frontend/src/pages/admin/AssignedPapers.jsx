@@ -16,7 +16,9 @@ export default function AssignedPapers() {
   const [confirmData, setConfirmData] = useState(null)   // { journalId, assignmentId, reviewerName, journalTitle }
   const [confirmLoading, setConfirmLoading] = useState(false)
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchAssigned is stable and intentionally mount-only
   useEffect(() => { fetchAssigned() }, [])
+
 
   async function fetchAssigned() {
     setLoading(true)

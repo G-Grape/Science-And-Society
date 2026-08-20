@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, ShieldCheck, Check, X } from 'lucide-react';
+import { Eye, EyeOff, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Turnstile } from '@marsidev/react-turnstile';
 import { AuthLayout } from '../components/layout/AuthLayout';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
@@ -13,6 +14,7 @@ export default function Register() {
   const [otpStep, setOtpStep] = useState(false);
   const [otpValue, setOtpValue] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState(null);
 
   const { signIn, requestRegisterOTP, verifyRegisterOTP } = useAuth();
   const toast = useToast();
@@ -68,7 +70,7 @@ export default function Register() {
 
     setLoading(true);
     try {
-      await requestRegisterOTP(form.email, form.role, form.adminCode);
+      await requestRegisterOTP(form.email, form.role, form.adminCode, turnstileToken);
       toast.success('OTP sent to your email!');
       setOtpStep(true);
     } catch (err) {
@@ -196,6 +198,19 @@ export default function Register() {
                 </div>
               </div>
             </>
+          )}
+
+          {/* Turnstile CAPTCHA — shown only on the initial form step, not the OTP entry step */}
+          {!otpStep && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.25rem' }}>
+              <Turnstile
+                siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                onSuccess={(token) => setTurnstileToken(token)}
+                onExpire={() => setTurnstileToken(null)}
+                onError={() => setTurnstileToken(null)}
+                options={{ theme: 'auto' }}
+              />
+            </div>
           )}
 
           <motion.button

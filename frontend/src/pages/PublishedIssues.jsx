@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { Search, X, Send } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { sendNotification } from '../lib/api'
 import { useToast } from '../components/Toast'
@@ -29,6 +28,7 @@ export default function PublishedIssues() {
 
   useEffect(() => {
     fetchIssues()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function fetchIssues() {
@@ -85,6 +85,7 @@ export default function PublishedIssues() {
         closeRequestModal()
       }
     } catch (error) {
+      console.error(error)
       toast.error('An error occurred. Please try again.')
     }
     setSubmitting(false)

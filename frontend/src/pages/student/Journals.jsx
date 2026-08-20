@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { FileText, Upload, ArrowRight, ArrowLeft, Download, MessageSquare, Trash2 } from 'lucide-react'
+
 import { useToast } from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
@@ -16,6 +16,7 @@ export function StudentJournals() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (user) fetchJournals() }, [user])
 
   async function fetchJournals() {
@@ -138,6 +139,7 @@ export function StudentJournalDetail() {
   const [editFile, setEditFile] = useState(null)
   const [resubmitting, setResubmitting] = useState(false)
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchDetail() }, [id])
 
   async function fetchDetail() {

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { API_BASE, sendNotification } from '../lib/api'
@@ -76,11 +77,11 @@ export function AuthProvider({ children }) {
     return data
   }
 
-  async function requestRegisterOTP(email, role, adminCode) {
+  async function requestRegisterOTP(email, role, adminCode, turnstileToken) {
     const res = await fetch(`${API_BASE}/api/auth/register-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, role, adminCode })
+      body: JSON.stringify({ email, role, adminCode, turnstileToken })
     })
     if (!res.ok) {
       const data = await res.json()
